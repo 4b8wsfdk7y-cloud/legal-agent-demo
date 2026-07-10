@@ -75,45 +75,116 @@ INDEX_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>法务 Agent</title>
+<title>法务 Agent — 合同审核</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+:root{--primary:#11998e;--primary-dark:#38ef7d;--accent:#52c41a;--warn:#fa8c16;--danger:#f5222d;--bg:#f0f2f5;--card:#fff;--text:#1a1a2e;--text-light:#666;--border:#e8e8e8;--radius:16px;--shadow:0 4px 24px rgba(0,0,0,.06);--shadow-hover:0 8px 32px rgba(17,153,142,.15)}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,"PingFang SC",sans-serif;background:#f0f2f5;color:#333}
-.container{max-width:900px;margin:0 auto;padding:20px}
-.header{background:linear-gradient(135deg,#11998e 0%,#38ef7d 100%);color:#fff;padding:40px;border-radius:12px;margin-bottom:24px}
-.header h1{font-size:28px;margin-bottom:8px}
-.header p{opacity:.9}
-.card{background:#fff;padding:24px;border-radius:8px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
-.card h2{font-size:18px;margin-bottom:16px;color:#444}
-.feature-list{list-style:none}
-.feature-list li{padding:10px 0;border-bottom:1px solid #f0f0f0}
-.feature-list li:last-child{border-bottom:none}
-.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600}
-.tag-dev{background:#fff7e6;color:#fa8c16}
-.tag-done{background:#f6ffed;color:#52c41a}
-a.btn{display:inline-block;padding:10px 24px;background:#11998e;color:#fff;text-decoration:none;border-radius:6px;margin-top:12px}
+body{font-family:'Inter',-apple-system,"PingFang SC",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+.container{max-width:1000px;margin:0 auto;padding:24px}
+.hero{background:linear-gradient(135deg,#11998e 0%,#38ef7d 100%);color:#fff;padding:48px 40px;border-radius:var(--radius);margin-bottom:28px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(17,153,142,.25)}
+.hero::before{content:'';position:absolute;top:-50%;right:-20%;width:400px;height:400px;background:rgba(255,255,255,.08);border-radius:50%;animation:float 6s ease-in-out infinite}
+.hero::after{content:'';position:absolute;bottom:-30%;left:-10%;width:300px;height:300px;background:rgba(255,255,255,.06);border-radius:50%;animation:float 8s ease-in-out infinite reverse}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-20px)}}
+.hero-content{position:relative;z-index:1}
+.hero h1{font-size:32px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.hero .subtitle{font-size:16px;opacity:.9;font-weight:400}
+.hero .badge{display:inline-block;background:rgba(255,255,255,.2);backdrop-filter:blur(10px);padding:6px 16px;border-radius:20px;font-size:13px;font-weight:500;margin-top:16px}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
+.stat-card{background:var(--card);padding:24px;border-radius:var(--radius);box-shadow:var(--shadow);transition:transform .3s,box-shadow .3s}
+.stat-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-hover)}
+.stat-card .stat-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px}
+.stat-card .stat-label{font-size:13px;color:var(--text-light);font-weight:500}
+.stat-card .stat-value{font-size:24px;font-weight:700;margin-top:4px}
+.section-title{font-size:20px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.section-title::before{content:'';width:4px;height:24px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));border-radius:2px}
+.card{background:var(--card);padding:28px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px}
+.feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.feature-item{padding:20px;border:2px solid var(--border);border-radius:12px;transition:all .3s;cursor:default}
+.feature-item:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:var(--shadow-hover)}
+.feature-item .feat-icon{font-size:32px;margin-bottom:8px}
+.feature-item h3{font-size:16px;font-weight:600;margin-bottom:6px}
+.feature-item p{font-size:13px;color:var(--text-light)}
+.tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;margin-top:8px}
+.tag-done{background:#f6ffed;color:var(--accent);border:1px solid #b7eb8f}
+.tag-dev{background:#fff7e6;color:var(--warn);border:1px solid #ffd591}
+.status-bar{display:flex;align-items:center;gap:12px;padding:12px 20px;background:linear-gradient(90deg,#f6ffed,#fff);border:1px solid #b7eb8f;border-radius:12px;margin-bottom:16px}
+.status-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(82,196,26,.4)}70%{box-shadow:0 0 0 8px rgba(82,196,26,0)}100%{box-shadow:0 0 0 0 rgba(82,196,26,0)}}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+a.btn{display:inline-flex;align-items:center;gap:6px;padding:12px 28px;border-radius:12px;font-size:14px;font-weight:600;text-decoration:none;transition:all .3s}
+.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;box-shadow:0 4px 16px rgba(17,153,142,.3)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(17,153,142,.4)}
+.btn-secondary{background:#fff;color:var(--primary);border:2px solid var(--primary)}
+.btn-secondary:hover{background:var(--primary);color:#fff}
+.btn-accent{background:linear-gradient(135deg,#52c41a,#389e0d);color:#fff;box-shadow:0 4px 16px rgba(82,196,26,.3)}
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="header">
-    <h1>⚖️ 法务 Agent</h1>
-    <p>合同审核 + ICP 外包需求 | Demo</p>
+  <div class="hero">
+    <div class="hero-content">
+      <h1>⚖️ 法务 Agent</h1>
+      <p class="subtitle">合同审核 · 风险 Checklist · RAG 知识库</p>
+      <span class="badge">🚀 D3 已上线 · 4 类合同 79 项检查点</span>
+    </div>
   </div>
-  <div class="card">
-    <h2>📋 功能模块</h2>
-    <ul class="feature-list">
-      <li>📄 <b>合同分类</b> — 上传 PDF → AI 识别类型 <span class="tag tag-done">D2 已实现</span></li>
-      <li>📚 <b>RAG 知识库</b> — 4 类合同模板入库,可检索 <span class="tag tag-done">D2 入库中</span></li>
-      <li>🔍 <b>合同审核</b> — 风险 Checklist + 修改建议 <span class="tag tag-done">D3 已实现</span></li>
-      <li>📝 <b>ICP 外包需求文档</b> <span class="tag tag-dev">D6</span></li>
-    </ul>
+
+  <div class="status-bar">
+    <div class="status-dot"></div>
+    <span><b>系统运行中</b> · 端口 5003 · 服务器 124.222.181.129</span>
   </div>
-  <div class="card">
-    <h2>🔧 系统状态</h2>
-    <p>当前进度: <b>D3 审核 Prompt</b> <span class="tag tag-done">运行中</span></p>
-    <p>端口: 5003 | 服务器: 124.222.181.129</p>
-    <p><a class="btn" href="/upload">前往审核</a> <a class="btn" href="/api/test-llm" style="background:#52c41a">测试 LLM</a> <a class="btn" href="/api/documents" style="background:#722ed1">知识库</a></p>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f6ffed">📋</div>
+      <div class="stat-label">合同模板</div>
+      <div class="stat-value">4 类</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f0f5ff">🔍</div>
+      <div class="stat-label">风险检查点</div>
+      <div class="stat-value">79 项</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fff7e6">📚</div>
+      <div class="stat-label">知识库</div>
+      <div class="stat-value">12 chunks</div>
+    </div>
+  </div>
+
+  <h2 class="section-title">功能模块</h2>
+  <div class="feature-grid">
+    <div class="feature-item">
+      <div class="feat-icon">📄</div>
+      <h3>合同分类</h3>
+      <p>上传 PDF → AI 自动识别类型(采购/toB/toC/人事)</p>
+      <span class="tag tag-done">✅ D2 已实现</span>
+    </div>
+    <div class="feature-item">
+      <div class="feat-icon">🔍</div>
+      <h3>合同审核</h3>
+      <p>风险 Checklist 逐条审核 + 修改建议 + 模板引用</p>
+      <span class="tag tag-done">✅ D3 已实现</span>
+    </div>
+    <div class="feature-item">
+      <div class="feat-icon">📚</div>
+      <h3>RAG 知识库</h3>
+      <p>4 类合同模板入库,审核时自动检索参考条款</p>
+      <span class="tag tag-done">✅ D2 已实现</span>
+    </div>
+    <div class="feature-item">
+      <div class="feat-icon">📝</div>
+      <h3>ICP 外包文档</h3>
+      <p>输出 ICP 备案外包需求文档,直发代理公司</p>
+      <span class="tag tag-dev">⏳ D6 开发中</span>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <a class="btn btn-primary" href="/upload">📄 前往审核</a>
+    <a class="btn btn-accent" href="/api/test-llm" target="_blank">⚡ 测试 LLM</a>
+    <a class="btn btn-secondary" href="/api/documents" target="_blank">📚 知识库</a>
   </div>
 </div>
 </body>
@@ -125,39 +196,80 @@ UPLOAD_HTML = """<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>合同审核 — 法务 Agent</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
+:root{--primary:#11998e;--primary-dark:#38ef7d;--accent:#52c41a;--warn:#fa8c16;--danger:#f5222d;--bg:#f0f2f5;--card:#fff;--text:#1a1a2e;--text-light:#666;--border:#e8e8e8;--radius:16px;--shadow:0 4px 24px rgba(0,0,0,.06)}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,"PingFang SC",sans-serif;background:#f0f2f5;color:#333}
-.container{max-width:900px;margin:0 auto;padding:20px}
-.header{background:linear-gradient(135deg,#11998e 0%,#38ef7d 100%);color:#fff;padding:30px;border-radius:12px;margin-bottom:24px}
-.card{background:#fff;padding:24px;border-radius:8px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.1)}
-.card h2{font-size:18px;margin-bottom:16px;color:#444}
-.drop-zone{border:2px dashed #d9d9d9;border-radius:8px;padding:40px;text-align:center;color:#999;cursor:pointer;transition:border-color .3s}
-.drop-zone:hover{border-color:#11998e}
-.drop-zone.has-file{border-color:#52c41a;color:#52c41a}
-.btn{display:inline-block;padding:10px 32px;background:#11998e;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer;margin-top:16px}
-.btn:disabled{background:#d9d9d9;cursor:not-allowed}
-a{color:#11998e}
-.info{background:#e6fffb;border:1px solid #87e8de;border-radius:4px;padding:12px;margin-top:12px;font-size:13px;color:#006d75}
-#result{margin-top:16px}
+body{font-family:'Inter',-apple-system,"PingFang SC",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+.container{max-width:900px;margin:0 auto;padding:24px}
+.hero{background:linear-gradient(135deg,#11998e 0%,#38ef7d 100%);color:#fff;padding:32px;border-radius:var(--radius);margin-bottom:24px}
+.hero h1{font-size:24px;font-weight:700;margin-bottom:4px}
+.hero p{opacity:.9;font-size:14px}
+.card{background:var(--card);padding:28px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px}
+.card h2{font-size:18px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.drop-zone{border:2px dashed var(--border);border-radius:12px;padding:48px;text-align:center;color:var(--text-light);cursor:pointer;transition:all .3s;background:#fafafa}
+.drop-zone:hover{border-color:var(--primary);background:#f0fff9;transform:scale(1.01)}
+.drop-zone.dragover{border-color:var(--primary);background:#f0fff9}
+.drop-zone.has-file{border-color:var(--accent);background:#f6ffed;color:var(--accent)}
+.drop-icon{font-size:48px;margin-bottom:8px}
+.drop-text{font-size:16px;font-weight:600;margin-bottom:4px}
+.drop-hint{font-size:13px;opacity:.7}
+.info-box{background:linear-gradient(135deg,#e6fffb,#fff);border:1px solid #87e8de;border-radius:12px;padding:14px;margin-top:12px;font-size:13px;color:#006d75}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:14px 36px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .3s;box-shadow:0 4px 16px rgba(17,153,142,.3)}
+.btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 24px rgba(17,153,142,.4)}
+.btn:disabled{background:#d9d9d9;cursor:not-allowed;box-shadow:none}
+a{color:var(--primary);text-decoration:none;font-weight:500}
+a:hover{text-decoration:underline}
+.result-box{margin-top:16px}
+.result-summary{background:linear-gradient(135deg,#f6ffed,#fff);border:1px solid #b7eb8f;border-radius:12px;padding:16px;margin-bottom:12px}
+.risk-badge{display:inline-block;padding:4px 14px;border-radius:16px;font-size:13px;font-weight:700}
+.risk-high{background:#fff1f0;color:#f5222d;border:1px solid #ffa39e}
+.risk-medium{background:#fff7e6;color:#fa8c16;border:1px solid #ffd591}
+.risk-low{background:#f6ffed;color:#52c41a;border:1px solid #b7eb8f}
+.stat-pills{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.stat-pill{padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600}
+.pill-pass{background:#f6ffed;color:#52c41a}
+.pill-warn{background:#fff7e6;color:#fa8c16}
+.pill-fail{background:#fff1f0;color:#f5222d}
+.result-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+.result-table th{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;padding:10px;text-align:left;font-weight:600}
+.result-table th:first-child{border-radius:8px 0 0 0}
+.result-table th:last-child{border-radius:0 8px 0 0}
+.result-table td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
+.result-table tr:hover{background:#f0fff9}
+.status-icon{font-size:18px}
+.suggestion{color:var(--text-light);font-size:12px;margin-top:4px}
+.loading{display:inline-block;width:20px;height:20px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.back-link{display:inline-flex;align-items:center;gap:4px;color:var(--text-light);font-size:14px;margin-top:16px}
 </style>
 </head>
 <body>
 <div class="container">
-  <div class="header">
-    <h1>📄 上传合同</h1>
+  <div class="hero">
+    <h1>📄 合同审核</h1>
+    <p>上传合同 PDF/TXT → AI 分类 → 风险 Checklist 审核 → 结构化结论</p>
   </div>
+
   <div class="card">
-    <h2>合同 PDF / 文本</h2>
-    <div class="drop-zone" id="drop">点击或拖拽 PDF 或 TXT 文件到此处</div>
-    <input type="file" id="file" accept=".pdf,.txt" style="display:none">
-    <div class="info">
-      支持: 采购合同 / 销售合同(toB/toC) / 人事合同<br>
-      D3: 上传后自动分类 + 审核风险 Checklist,D4 会加飞书文档输出
+    <h2>📤 上传合同</h2>
+    <div class="drop-zone" id="drop">
+      <div class="drop-icon">📁</div>
+      <div class="drop-text">点击或拖拽文件到此处</div>
+      <div class="drop-hint">支持 PDF 和 TXT 格式</div>
     </div>
-    <button class="btn" id="submit" disabled>🔍 分类 + 审核</button>
-    <div id="result"></div>
-    <p style="margin-top:12px;color:#999"><a href="/">← 返回首页</a></p>
+    <input type="file" id="file" accept=".pdf,.txt" style="display:none">
+    <div class="info-box">
+      <b>📋 支持 4 类合同:</b> 采购合同 / 销售合同-toB(SaaS) / 销售合同-toC / 人事合同<br>
+      <b>🔍 审核流程:</b> 分类 → 选 Checklist → RAG 检索模板 → 逐条审核 → 风险等级
+    </div>
+    <div style="text-align:center;margin-top:20px">
+      <button class="btn" id="submit" disabled>🔍 分类 + 审核</button>
+    </div>
+    <div class="result-box" id="result"></div>
+    <div style="text-align:center">
+      <a href="/" class="back-link">← 返回首页</a>
+    </div>
   </div>
 </div>
 <script>
@@ -166,43 +278,59 @@ const file=document.getElementById('file');
 const btn=document.getElementById('submit');
 const result=document.getElementById('result');
 zone.addEventListener('click',()=>file.click());
-zone.addEventListener('dragover',e=>{e.preventDefault();zone.style.borderColor='#11998e'});
-zone.addEventListener('dragleave',e=>{zone.style.borderColor='#d9d9d9'});
+zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('dragover')});
+zone.addEventListener('dragleave',e=>{zone.classList.remove('dragover')});
 zone.addEventListener('drop',e=>{
   e.preventDefault();
-  if(e.dataTransfer.files.length){file.files=e.dataTransfer.files;zone.textContent='✅ '+file.files[0].name;zone.classList.add('has-file');btn.disabled=false}
+  zone.classList.remove('dragover');
+  if(e.dataTransfer.files.length){file.files=e.dataTransfer.files;showFile()}
 });
-file.addEventListener('change',()=>{
-  if(file.files.length){zone.textContent='✅ '+file.files[0].name;zone.classList.add('has-file');btn.disabled=false}
-});
+file.addEventListener('change',showFile);
+function showFile(){
+  if(file.files.length){
+    zone.innerHTML='<div class="drop-icon">✅</div><div class="drop-text">'+file.files[0].name+'</div><div class="drop-hint">点击重新选择</div>';
+    zone.classList.add('has-file');
+    btn.disabled=false;
+  }
+}
 btn.addEventListener('click',async()=>{
   if(!file.files.length)return;
-  result.textContent='分类 + 审核中(约 30-60 秒)...';
+  result.innerHTML='<div style="text-align:center;padding:24px"><span class="loading"></span>分类 + 审核中(约 30-60 秒)...</div>';
   const fd=new FormData();
   fd.append('file',file.files[0]);
   try{
     const r=await fetch('/api/review/file',{method:'POST',body:fd});
     const j=await r.json();
     if(j.ok){
-      let html='<div style="margin:12px 0">';
-      html+=`<p><b>类型:</b> ${j.contract_type} (置信度 ${(j.type_confidence*100).toFixed(0)}%)</p>`;
-      html+=`<p><b>总体风险:</b> <span style="color:${j.overall_risk==='高'?'red':j.overall_risk==='中'?'orange':'green'};font-weight:bold">${j.overall_risk}</span></p>`;
-      html+=`<p><b>统计:</b> ✅ ${j.stats.pass} 通过 / ⚠️ ${j.stats.warn} 警告 / ❌ ${j.stats.fail} 风险 / 共 ${j.stats.total} 项</p>`;
+      const riskClass=j.overall_risk==='高'?'risk-high':j.overall_risk==='中'?'risk-medium':'risk-low';
+      let html='<div class="result-summary">';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">';
+      html+='<div><b>合同类型:</b> '+j.contract_type+' <span style="color:#999;font-size:12px">('+(j.type_confidence*100).toFixed(0)+'% 置信度)</span></div>';
+      html+='<span class="risk-badge '+riskClass+'">风险等级: '+j.overall_risk+'</span>';
       html+='</div>';
-      if(j.items && j.items.length){
-        html+='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="border:1px solid #ddd;padding:6px;text-align:left">状态</th><th style="border:1px solid #ddd;padding:6px;text-align:left">检查项</th><th style="border:1px solid #ddd;padding:6px;text-align:left">问题/建议</th></tr></thead><tbody>';
+      html+='<div class="stat-pills">';
+      html+='<span class="stat-pill pill-pass">✅ '+j.stats.pass+' 通过</span>';
+      html+='<span class="stat-pill pill-warn">⚠️ '+j.stats.warn+' 警告</span>';
+      html+='<span class="stat-pill pill-fail">❌ '+j.stats.fail+' 风险</span>';
+      html+='<span class="stat-pill" style="background:#f0f5ff;color:#667eea">共 '+j.stats.total+' 项</span>';
+      html+='</div></div>';
+      if(j.items&&j.items.length){
+        html+='<table class="result-table"><thead><tr><th style="width:40px">状态</th><th>检查项</th><th>问题 / 建议</th></tr></thead><tbody>';
         j.items.forEach(it=>{
           const icon=it.status==='pass'?'✅':it.status==='warn'?'⚠️':'❌';
           const color=it.status==='pass'?'#52c41a':it.status==='warn'?'#fa8c16':'#f5222d';
-          html+=`<tr><td style="border:1px solid #ddd;padding:6px;color:${color}">${icon}</td><td style="border:1px solid #ddd;padding:6px">${it.item||''}</td><td style="border:1px solid #ddd;padding:6px">${it.issue||''}${it.suggestion?'<br><b>建议:</b>'+it.suggestion:''}</td></tr>`;
+          html+='<tr><td class="status-icon" style="color:'+color+'">'+icon+'</td><td>'+(it.item||'')+'</td><td>';
+          if(it.issue)html+=it.issue;
+          if(it.suggestion)html+='<div class="suggestion"><b>建议:</b>'+it.suggestion+'</div>';
+          html+='</td></tr>';
         });
         html+='</tbody></table>';
       }
       result.innerHTML=html;
     }else{
-      result.innerHTML='<pre style="color:red">'+JSON.stringify(j,null,2)+'</pre>';
+      result.innerHTML='<div style="color:red;padding:16px;background:#fff0f0;border-radius:8px">❌ '+(j.error||JSON.stringify(j))+'</div>';
     }
-  }catch(e){result.textContent='错误: '+e.message}
+  }catch(e){result.innerHTML='<div style="color:red">错误: '+e.message+'</div>'}
 });
 </script>
 </body>
