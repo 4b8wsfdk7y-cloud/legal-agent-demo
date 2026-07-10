@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""法务 Agent — 合同审核 Demo (D2)"""
+"""法务 Agent — 合同审核 Demo (D3)"""
 from flask import Flask, request, jsonify, render_template_string
 import os
 import json
 import sqlite3
+import math
 from dotenv import load_dotenv
 from cherry_client import chat, chat_json, embed, test_connection
+from checklists import CHECKLISTS, REVIEW_PROMPT
 
 load_dotenv()
 
@@ -103,13 +105,13 @@ a.btn{display:inline-block;padding:10px 24px;background:#11998e;color:#fff;text-
     <ul class="feature-list">
       <li>📄 <b>合同分类</b> — 上传 PDF → AI 识别类型 <span class="tag tag-done">D2 已实现</span></li>
       <li>📚 <b>RAG 知识库</b> — 4 类合同模板入库,可检索 <span class="tag tag-done">D2 入库中</span></li>
-      <li>🔍 <b>合同审核</b> — 风险 Checklist + 修改建议 <span class="tag tag-dev">D3-D4</span></li>
+      <li>🔍 <b>合同审核</b> — 风险 Checklist + 修改建议 <span class="tag tag-done">D3 已实现</span></li>
       <li>📝 <b>ICP 外包需求文档</b> <span class="tag tag-dev">D6</span></li>
     </ul>
   </div>
   <div class="card">
     <h2>🔧 系统状态</h2>
-    <p>当前进度: <b>D2 分类 + RAG</b> <span class="tag tag-done">运行中</span></p>
+    <p>当前进度: <b>D3 审核 Prompt</b> <span class="tag tag-done">运行中</span></p>
     <p>端口: 5003 | 服务器: 124.222.181.129</p>
     <p><a class="btn" href="/upload">前往审核</a> <a class="btn" href="/api/test-llm" style="background:#52c41a">测试 LLM</a> <a class="btn" href="/api/documents" style="background:#722ed1">知识库</a></p>
   </div>
@@ -151,9 +153,9 @@ a{color:#11998e}
     <input type="file" id="file" accept=".pdf,.txt" style="display:none">
     <div class="info">
       支持: 采购合同 / 销售合同(toB/toC) / 人事合同<br>
-      D2: 上传后会先做类型分类,D3-D4 实现完整审核
+      D3: 上传后自动分类 + 审核风险 Checklist,D4 会加飞书文档输出
     </div>
-    <button class="btn" id="submit" disabled>🔍 分类合同类型</button>
+    <button class="btn" id="submit" disabled>🔍 分类 + 审核</button>
     <div id="result"></div>
     <p style="margin-top:12px;color:#999"><a href="/">← 返回首页</a></p>
   </div>
@@ -175,13 +177,31 @@ file.addEventListener('change',()=>{
 });
 btn.addEventListener('click',async()=>{
   if(!file.files.length)return;
-  result.textContent='分类中...';
+  result.textContent='分类 + 审核中(约 30-60 秒)...';
   const fd=new FormData();
   fd.append('file',file.files[0]);
   try{
-    const r=await fetch('/api/classify-file',{method:'POST',body:fd});
+    const r=await fetch('/api/review/file',{method:'POST',body:fd});
     const j=await r.json();
-    result.innerHTML='<pre style="background:#f5f5f5;padding:16px;border-radius:4px;overflow-x:auto">'+JSON.stringify(j,null,2)+'</pre>';
+    if(j.ok){
+      let html='<div style="margin:12px 0">';
+      html+=`<p><b>类型:</b> ${j.contract_type} (置信度 ${(j.type_confidence*100).toFixed(0)}%)</p>`;
+      html+=`<p><b>总体风险:</b> <span style="color:${j.overall_risk==='高'?'red':j.overall_risk==='中'?'orange':'green'};font-weight:bold">${j.overall_risk}</span></p>`;
+      html+=`<p><b>统计:</b> ✅ ${j.stats.pass} 通过 / ⚠️ ${j.stats.warn} 警告 / ❌ ${j.stats.fail} 风险 / 共 ${j.stats.total} 项</p>`;
+      html+='</div>';
+      if(j.items && j.items.length){
+        html+='<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="border:1px solid #ddd;padding:6px;text-align:left">状态</th><th style="border:1px solid #ddd;padding:6px;text-align:left">检查项</th><th style="border:1px solid #ddd;padding:6px;text-align:left">问题/建议</th></tr></thead><tbody>';
+        j.items.forEach(it=>{
+          const icon=it.status==='pass'?'✅':it.status==='warn'?'⚠️':'❌';
+          const color=it.status==='pass'?'#52c41a':it.status==='warn'?'#fa8c16':'#f5222d';
+          html+=`<tr><td style="border:1px solid #ddd;padding:6px;color:${color}">${icon}</td><td style="border:1px solid #ddd;padding:6px">${it.item||''}</td><td style="border:1px solid #ddd;padding:6px">${it.issue||''}${it.suggestion?'<br><b>建议:</b>'+it.suggestion:''}</td></tr>`;
+        });
+        html+='</tbody></table>';
+      }
+      result.innerHTML=html;
+    }else{
+      result.innerHTML='<pre style="color:red">'+JSON.stringify(j,null,2)+'</pre>';
+    }
   }catch(e){result.textContent='错误: '+e.message}
 });
 </script>
@@ -202,7 +222,7 @@ def health():
     return jsonify({
         "status": "ok",
         "service": "legal-agent",
-        "day": "D2",
+        "day": "D3",
         "port": 5003,
         "llm_model": LLM_MODEL,
         "embed_model": EMBED_MODEL,
@@ -349,10 +369,111 @@ def search():
         })
     return jsonify({"ok": True, "query": query, "results": results})
 
+def _do_review(text):
+    """合同审核核心逻辑: 分类 → 选 Checklist → RAG → 逐条审核"""
+    # 1. 分类
+    snippet = text[:1500]
+    classify_prompt = CLASSIFY_PROMPT.format(text=snippet)
+    classify_result = chat_json([
+        {"role": "system", "content": "你是合同分类助手。只返回 JSON。"},
+        {"role": "user", "content": classify_prompt},
+    ], temperature=0.1)
+
+    contract_type = classify_result.get("type", "未知") if isinstance(classify_result, dict) else "未知"
+    confidence = classify_result.get("confidence", 0) if isinstance(classify_result, dict) else 0
+
+    # 2. 选 Checklist
+    checklist_items = CHECKLISTS.get(contract_type, CHECKLISTS["采购合同"])
+    checklist_text = "\n".join(f"{i+1}. {item}" for i, item in enumerate(checklist_items))
+
+    # 3. RAG 检索模板条款
+    rag_context = ""
+    try:
+        emb_result = embed(text[:500])
+        if emb_result.get("embeddings"):
+            query_vec = emb_result["embeddings"][0]
+            conn = sqlite3.connect(DB_PATH)
+            c = conn.cursor()
+            c.execute("SELECT chunk_text, embedding FROM chunks")
+            scored = []
+            for row in c.fetchall():
+                emb = json.loads(row[1])
+                dot = sum(a*b for a, b in zip(query_vec, emb))
+                norm_q = math.sqrt(sum(x*x for x in query_vec))
+                norm_e = math.sqrt(sum(x*x for x in emb))
+                sim = dot / (norm_q * norm_e) if norm_q > 0 and norm_e > 0 else 0
+                scored.append((sim, row[0]))
+            conn.close()
+            scored.sort(key=lambda x: -x[0])
+            top_chunks = [s[1] for s in scored[:3]]
+            rag_context = "\n---\n".join(top_chunks)
+    except Exception as e:
+        rag_context = f"(RAG 检索失败: {e})"
+
+    # 4. 审核
+    review_prompt = REVIEW_PROMPT.format(
+        contract_type=contract_type,
+        checklist=checklist_text,
+        contract_text=text[:3000],
+        rag_context=rag_context[:2000] or "(无)",
+    )
+
+    review_result = chat_json([
+        {"role": "system", "content": "你是法务审核专员。逐条检查 Checklist,返回 JSON 数组。"},
+        {"role": "user", "content": review_prompt},
+    ], temperature=0.1)
+
+    # 5. 统计
+    items = review_result if isinstance(review_result, list) else []
+    stats = {"pass": 0, "warn": 0, "fail": 0, "total": len(items)}
+    for item in items:
+        status = item.get("status", "warn")
+        if status in stats:
+            stats[status] += 1
+    overall_risk = "高" if stats["fail"] > 2 else ("中" if stats["fail"] > 0 or stats["warn"] > 3 else "低")
+
+    return {
+        "ok": True,
+        "contract_type": contract_type,
+        "type_confidence": confidence,
+        "overall_risk": overall_risk,
+        "stats": stats,
+        "items": items,
+    }
+
 @app.route("/api/review", methods=["POST"])
 def review():
-    """合同审核 (D3-D4 实现)"""
-    return jsonify({"ok": True, "message": "D3-D4 实现"})
+    """合同审核: 分类 → 选 Checklist → RAG 检索模板 → 逐条审核"""
+    data = request.json or {}
+    text = data.get("text", "")
+    if not text:
+        return jsonify({"ok": False, "error": "text is required"})
+    return jsonify(_do_review(text))
+
+@app.route("/api/review/file", methods=["POST"])
+def review_file():
+    """合同审核(文件上传)"""
+    f = request.files.get("file")
+    if not f:
+        return jsonify({"ok": False, "error": "file is required"})
+    filename = f.filename
+    text = ""
+    if filename.endswith(".txt"):
+        text = f.read().decode("utf-8", errors="ignore")
+    elif filename.endswith(".pdf"):
+        try:
+            from pypdf import PdfReader
+            import io
+            reader = PdfReader(io.BytesIO(f.read()))
+            text = "\n".join(page.extract_text() or "" for page in reader.pages)
+        except ImportError:
+            return jsonify({"ok": False, "error": "pypdf not installed"})
+    else:
+        text = f.read().decode("utf-8", errors="ignore")
+    if not text.strip():
+        return jsonify({"ok": False, "error": "无法提取文本"})
+    return jsonify(_do_review(text))
+
 
 # === 飞书 webhook ===
 @app.route("/webhook", methods=["POST"])

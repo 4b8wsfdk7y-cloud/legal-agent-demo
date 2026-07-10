@@ -1,4 +1,12 @@
 ## 📝 更新日志
+### 2026-07-10 (D3)
+- 4 类合同风险 Checklist (采购 18 项/toB 23 项/toC 17 项/人事 21 项)
+- 审核 Prompt 模板 (checklists.py)
+- 合同审核 API (/api/review + /api/review/file)
+- 审核流程: 分类 → 选 Checklist → RAG 检索模板 → 逐条审核
+- 审核结论结构化: 风险等级(高/中/低) + 逐条状态(pass/warn/fail) + 修改建议
+- 前端审核结果表格(✅/⚠️/❌ 三色)
+- 测试: 有缺陷的采购合同 → 18 项中 9 项风险、8 项警告,总体风险「高」
 
 ### 2026-07-10 (D2)
 - CherryIN API 客户端 (cherry_client.py)
