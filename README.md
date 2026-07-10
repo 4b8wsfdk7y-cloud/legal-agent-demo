@@ -1,4 +1,10 @@
 ## 📝 更新日志
+### 2026-07-10 (D4)
+- 飞书 Bot 集成 (feishu_client.py + lark-cli)
+- 审核报告发送到飞书群 (/api/review/feishu) — 富文本格式,含风险等级/统计/不合规项详情
+- 飞书群聊列表 (/api/feishu/chats)
+- 审核页面增加「发送到飞书」区域 — 审核完成后一键发送报告到群聊
+
 ### 2026-07-10 (D3)
 - 4 类合同风险 Checklist (采购 18 项/toB 23 项/toC 17 项/人事 21 项)
 - 审核 Prompt 模板 (checklists.py)

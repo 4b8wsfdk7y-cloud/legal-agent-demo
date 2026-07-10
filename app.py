@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""法务 Agent — 合同审核 Demo (D3)"""
+"""法务 Agent — 合同审核 Demo (D4)"""
 from flask import Flask, request, jsonify, render_template_string
 import os
 import json
@@ -8,6 +8,7 @@ import math
 from dotenv import load_dotenv
 from cherry_client import chat, chat_json, embed, test_connection
 from checklists import CHECKLISTS, REVIEW_PROMPT
+from feishu_client import list_chats as feishu_list_chats, send_post as feishu_send_post
 
 load_dotenv()
 
@@ -126,7 +127,7 @@ a.btn{display:inline-flex;align-items:center;gap:6px;padding:12px 28px;border-ra
     <div class="hero-content">
       <h1>⚖️ 法务 Agent</h1>
       <p class="subtitle">合同审核 · 风险 Checklist · RAG 知识库</p>
-      <span class="badge">🚀 D3 已上线 · 4 类合同 79 项检查点</span>
+      <span class="badge">🚀 D4 已上线 · 审核结果可视化 + 飞书输出</span>
     </div>
   </div>
 
@@ -164,8 +165,8 @@ a.btn{display:inline-flex;align-items:center;gap:6px;padding:12px 28px;border-ra
     <div class="feature-item">
       <div class="feat-icon">🔍</div>
       <h3>合同审核</h3>
-      <p>风险 Checklist 逐条审核 + 修改建议 + 模板引用</p>
-      <span class="tag tag-done">✅ D3 已实现</span>
+      <p>风险 Checklist 逐条审核 + 修改建议 + 模板引用 + 飞书输出</p>
+      <span class="tag tag-done">✅ D4 已实现</span>
     </div>
     <div class="feature-item">
       <div class="feat-icon">📚</div>
@@ -267,6 +268,13 @@ a:hover{text-decoration:underline}
       <button class="btn" id="submit" disabled>🔍 分类 + 审核</button>
     </div>
     <div class="result-box" id="result"></div>
+    <div id="feishu-section" style="display:none;margin-top:20px;padding:20px;background:#f7f8fc;border-radius:12px;border:1px solid #e8e8f0">
+      <h3 style="font-size:16px;margin-bottom:12px">📤 发送审核报告到飞书</h3>
+      <p style="color:#666;font-size:13px;margin-bottom:12px">选择群聊后,把审核结果发到飞书群</p>
+      <select id="chat-select" style="padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;margin-right:8px;min-width:200px"><option value="">加载群聊中...</option></select>
+      <button id="send-feishu" style="background:linear-gradient(135deg,#3370ff,#5286ff);color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit" disabled>发送到飞书</button>
+      <div id="feishu-result" class="result-msg" style="margin-top:10px;padding:10px;border-radius:8px;font-size:13px;display:none"></div>
+    </div>
     <div style="text-align:center">
       <a href="/" class="back-link">← 返回首页</a>
     </div>
@@ -327,11 +335,46 @@ btn.addEventListener('click',async()=>{
         html+='</tbody></table>';
       }
       result.innerHTML=html;
+      // 显示飞书发送区
+      lastReview=j;
+      const fs=document.getElementById('feishu-section');
+      if(fs)fs.style.display='block';
     }else{
       result.innerHTML='<div style="color:red;padding:16px;background:#fff0f0;border-radius:8px">❌ '+(j.error||JSON.stringify(j))+'</div>';
     }
   }catch(e){result.innerHTML='<div style="color:red">错误: '+e.message+'</div>'}
 });
+
+// === 飞书输出 ===
+let lastReview=null;
+async function loadChats(){
+  const r=await fetch('/api/feishu/chats');
+  const d=await r.json();
+  const sel=document.getElementById('chat-select');
+  if(d.ok&&d.chats&&d.chats.length>0){
+    sel.innerHTML=d.chats.map(c=>'<option value="'+c.chat_id+'">'+c.name+'</option>').join('');
+    document.getElementById('send-feishu').disabled=false;
+  }else{
+    sel.innerHTML='<option value="">无可用群聊 ('+(d.error||'未知')+'</option>';
+  }
+}
+document.getElementById('send-feishu').addEventListener('click',async()=>{
+  if(!lastReview)return;
+  const chatId=document.getElementById('chat-select').value;
+  if(!chatId)return;
+  const btn=document.getElementById('send-feishu');
+  const msg=document.getElementById('feishu-result');
+  btn.disabled=true;btn.textContent='发送中...';
+  msg.className='result-msg';
+  try{
+    const r=await fetch('/api/review/feishu',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,review:lastReview})});
+    const d=await r.json();
+    if(d.ok){msg.className='result-msg success';msg.textContent='✅ 审核报告已发送到飞书群';}
+    else{msg.className='result-msg error';msg.textContent='❌ '+(d.error||'发送失败');}
+  }catch(e){msg.className='result-msg error';msg.textContent='❌ '+e.message;}
+  btn.disabled=false;btn.textContent='发送到飞书';
+});
+loadChats();
 </script>
 </body>
 </html>"""
@@ -350,7 +393,7 @@ def health():
     return jsonify({
         "status": "ok",
         "service": "legal-agent",
-        "day": "D3",
+        "day": "D4",
         "port": 5003,
         "llm_model": LLM_MODEL,
         "embed_model": EMBED_MODEL,
@@ -601,6 +644,57 @@ def review_file():
     if not text.strip():
         return jsonify({"ok": False, "error": "无法提取文本"})
     return jsonify(_do_review(text))
+
+
+# === D4: 飞书输出 ===
+@app.route("/api/feishu/chats")
+def feishu_chats():
+    """列出 Bot 所在的飞书群聊"""
+    return jsonify(feishu_list_chats())
+
+@app.route("/api/review/feishu", methods=["POST"])
+def review_feishu():
+    """把审核结果发到飞书群"""
+    data = request.json or {}
+    chat_id = data.get("chat_id", "")
+    review_data = data.get("review", {})
+    if not chat_id:
+        return jsonify({"ok": False, "error": "chat_id is required"})
+    if not review_data:
+        return jsonify({"ok": False, "error": "review data is required"})
+
+    # 构建富文本卡片
+    contract_type = review_data.get("contract_type", "未知")
+    overall_risk = review_data.get("overall_risk", "未知")
+    stats = review_data.get("stats", {})
+    items = review_data.get("items", [])
+
+    paragraphs = []
+    # 概要行
+    risk_emoji = {"高": "🔴", "中": "🟡", "低": "🟢"}.get(overall_risk, "⚪")
+    paragraphs.append([{
+        "tag": "text",
+        "text": f"合同类型: {contract_type}\n总体风险: {risk_emoji} {overall_risk}\n统计: ✅{stats.get('pass',0)} 通过  ⚠️{stats.get('warn',0)} 警告  ❌{stats.get('fail',0)} 不合规\n",
+    }])
+
+    # 风险项详情
+    fail_items = [it for it in items if it.get("status") == "fail"]
+    warn_items = [it for it in items if it.get("status") == "warn"]
+    if fail_items:
+        seg = [{"tag": "text", "text": "\n❌ 不合规项:\n", "style": ["bold"]}]
+        for it in fail_items[:5]:
+            seg.append({"tag": "text", "text": f"  • {it.get('item','')[:40]}\n    建议: {it.get('suggestion','')[:60]}\n"})
+        paragraphs.append(seg)
+    if warn_items:
+        seg = [{"tag": "text", "text": "\n⚠️ 警告项:\n", "style": ["bold"]}]
+        for it in warn_items[:5]:
+            seg.append({"tag": "text", "text": f"  • {it.get('item','')[:40]}\n    建议: {it.get('suggestion','')[:60]}\n"})
+        paragraphs.append(seg)
+
+    result = feishu_send_post(chat_id, "🔍 合同审核报告", paragraphs)
+    if result.get("code") == 0:
+        return jsonify({"ok": True, "sent": True})
+    return jsonify({"ok": False, "error": result.get("msg", "send failed"), "raw": result})
 
 
 # === 飞书 webhook ===
