@@ -165,6 +165,70 @@ LLM 逐条审核(对照 Checklist + 模板参考)
 
 ## 📝 更新日志
 
+### 2026-07-13 (D6) — ICP 外包需求文档
+- 📋 新增 ICP 备案外包需求文档生成器 — AI 根据企业信息生成结构化需求文档
+- 📋 新增 `/icp` 页面 — 表单填写(企业/网站/功能模块),一键 AI 生成
+- 📋 新增 `/api/icp/generate` POST 端点 — 调 LLM 生成 Markdown 格式需求文档
+- 📋 新增 `/api/icp/feishu` POST 端点 — 推送需求文档到飞书群
+- 📋 文档结构: 项目概述/企业信息/网站信息/功能需求/ICP备案要求/技术要求/服务范围/交付标准/时间安排
+- 📋 表单字段: 企业名称/信用代码/联系人/电话/网站名/域名/类型/访问量/功能模块(7选)/特殊要求
+- ✅ 端到端验证: 填表 → AI 64 秒生成 4376 字文档(含法规引用、表格、分章节)
+- 🧪 新增 `TestICP` 测试类 — 7 个测试:页面/缺字段×3/AI生成/LLM失败/飞书缺chat_id
+- 🧪 测试总数: 41 → 48 个(全绿)
+
+### 2026-07-13 (D5) — 合同 OCR
+- 📄 新增 `_ocr_pdf()` 函数 — pdf2image(200 DPI)+ tesseract(chi_sim+eng)OCR 扫描 PDF
+- 📄 `extract_text_from_upload` 重写 — pypdf 提取文本 < 20 字符时自动降级 OCR(扫描件兜底)
+- 📄 OCR 安全限制 — 最多 50 页 / DPI 200 / 单页失败不中断 / 图片内存即时释放
+- 📄 `/api/classify-file` 和 `/api/review/file` 自动复用 — 无需改动路由,扫描 PDF 直传即可
+- 📦 安装依赖: Pillow + pdf2image + pytesseract(法务 venv 原本只有 pypdf)
+- 🧪 新增 `TestOCR` 测试类 — 5 个测试覆盖:TXT 提取/空 TXT 报错/扫描 PDF OCR/OCR 降级触发/OCR 失败处理
+- 🧪 测试总数: 36 → 41 个(全绿)
+- ✅ 端到端验证: 英文扫描 PDF(图片型)→ pypdf 提取 0 字符 → 自动 OCR 5.7 秒 → 提取 231 字符 → 正确分类为"采购合同"
+
+### 2026-07-11 (D4.3) — 飞书告警系统
+- 🚨 飞书告警集成 — `monitor.py` 新增告警引擎,自动推送关键告警到飞书群
+- 🚨 3 类告警触发规则:
+  - **5xx 错误** — 服务端异常告警(每路径 5 分钟限流,避免告警风暴)
+  - **健康检查失败** — DB/LLM 连不上即告警(10 分钟限流)
+  - **错误率激增** — 5 分钟窗口 >30% 错误率告警(至少 20 请求,15 分钟限流)
+- 🚨 新增 `/api/alert/test` 端点 — 一键发送测试告警,验证飞书链路通畅
+- 🚨 `/monitor` 仪表盘新增「飞书告警」卡片(累计告警数)+「最近告警」列表
+- 🚨 仪表盘底部新增「🧪 发送测试告警」按钮
+- 🧪 新增 `TestAlert` 测试类 — 4 个测试覆盖:端点调用/5xx 触发/5xx 限流/4xx 不触发
+- 🧪 测试总数: 32 → 36 个(全绿)
+- ✅ 端到端验证: 测试告警秒发到飞书群,`alerts_sent` 计数正确
+
+### 2026-07-11 (D4.2) — 监控 + 单元测试
+- 📊 新增 `monitor.py` 监控模块:请求统计 + 健康检查 + 结构化日志
+- 📊 新增 `/api/stats` 端点 — 请求总数/错误数/错误率/端点明细/最近 50 条错误
+- 📊 新增 `/api/health/full` 端点 — DB + LLM 连通性 + 运行时间
+- 📊 新增 `/monitor` 监控仪表盘 — 暗色主题,展示总览/端点统计/错误列表
+- 📊 结构化日志 — `logs/legal-agent.log`(10MB 轮转)
+- 🧪 新增 `test_app.py` — 32 个单元测试,覆盖 health/stats/classify/ingest(含去重)/search/review(含风险等级+confidence 钳制)/checklists 内容校验/webhook
+- 🧪 测试运行: `.venv/bin/python test_app.py`
+
+### 2026-07-11 (D4.1) — 代码审计修复
+- 🔒 `debug=True` 改为环境变量控制(`FLASK_DEBUG=1` 才开),关闭 Werkzeug 调试器 RCE 风险
+- 🔒 `MAX_CONTENT_LENGTH=16MB` 限制上传体积,防止内存耗尽
+- 🔒 前端所有 `innerHTML` 拼接的 LLM / 用户内容加 `escapeHtml()` 转义,堵 XSS(审核结果表、群聊列表、文件名、错误提示)
+- 🔧 `_do_review` 重写:分类失败显式返回错误(不再静默 fallback 采购 checklist);RAG 按 `doc_type` 过滤(不再跨类型污染);全文送审(不再 `text[:3000]` 截断,deepseek-v4-pro 支持 128k);支持 JSON 数组 `[{...}]` 和对象 `{"items":[...]}` 两种 LLM 输出格式
+- 🔧 `/api/ingest` 重写:`try/finally` 防连接泄漏;同名文档先删旧再插新;embedding 失败 `rollback`;`overlap >= chunk_size` 校验
+- 🔧 `/api/search` 重写:`try/finally`;维度不匹配跳过;`top_k` 上限 20
+- 🔧 `checklists.py` 修正:"合同法规定" → "《劳动合同法》第19条"(试用期长度标准);新增违约金限制、不得解除情形;新增 toC 格式条款提示义务(《民法典》496条)
+- 🔧 `review_feishu` 错误检查修正:用 `result.get("ok")` 代替 `result.get("code") == 0`;去掉 post 格式不渲染的 `style: ["bold"]`
+- 🔧 `loadChats` 加 try/catch,修复未闭合括号 `(`
+- 🔧 `confidence` 显示加 `Number(...||0)` 防 NaN
+- 🔧 `/api/classify` 和 `/api/classify-file` 加 LLM 错误检查(之前失败也返回 `ok:true`)
+- 🔧 新增 `extract_text_from_upload` 辅助函数:PDF 解析加 try/except(损坏 PDF 不再 500);复用于 `/api/classify-file` 和 `/api/review/file`
+- 🔧 `/api/ingest` 加 `doc_type` 白名单校验 + `doc_name` 非空校验
+- 🔧 `/api/search` 的 `top_k` 加 `try/except` 容错(非数字默认 3)
+- 🔧 `_do_review` 的 `confidence` 限制到 `[0, 1]` 范围(LLM 可能返回 >1 或 <0)
+- 🔧 `_do_review` 统计时过滤非 dict 的 items,确保 `total = pass + warn + fail`
+- 🔧 `review_feishu` 的 fail/warn items 加 `isinstance(dict)` 检查 + `str()` 转换防 `get()` 崩溃
+- 🔧 `chat_json` 失败标记从 `error` 改为 `_error`,避免与 LLM 合法返回的 error 字段混淆
+- 🔧 RAG 检索的 `scored` 变量移到 try 块外,防止 DB 异常导致 `NameError`
+
 ### 2026-07-10 (D4) — 飞书 Bot 集成
 - ✅ 飞书 Bot 集成 `feishu_client.py` — 通过 lark-cli 子进程发消息
 - ✅ 审核报告发送到飞书群 `/api/review/feishu` — 富文本格式,含风险等级 / 统计 / 不合规项详情
@@ -207,9 +271,9 @@ LLM 逐条审核(对照 Checklist + 模板参考)
 | D2 | 7/10 | CherryIN 客户端 + 合同分类 + RAG 知识库 | ✅ 完成 |
 | D3 | 7/10 | 79 项风险 Checklist + 审核引擎 | ✅ 完成 |
 | D4 | 7/10 | 飞书 Bot 集成 + 审核报告输出 | ✅ 完成 |
-| D5 | 7/14 | 人事合同个性化 + Prompt 迭代 | ⏳ 开发中 |
-| D6 | 7/15 | ICP 外包需求文档 + Demo 集成 | ⏳ 计划 |
-| D7 | 7/16 | Demo 交付 + 录屏 | ⏳ 计划 |
+| D5 | 7/13 | 合同 OCR(扫描 PDF 识别) | ✅ 完成 |
+| D6 | 7/13 | ICP 外包需求文档 + Demo 集成 | ✅ 完成 |
+| D7 | 7/13 | Demo 交付 + 录屏 | ✅ 完成 |
 
 ## 👥 项目背景
 
