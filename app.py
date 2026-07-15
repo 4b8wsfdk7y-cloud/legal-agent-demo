@@ -687,11 +687,21 @@ function showFile(){
 }
 btn.addEventListener('click',async()=>{
   if(!file.files.length)return;
-  result.innerHTML='<div style="text-align:center;padding:24px"><span class="loading"></span>分类 + 审核中(约 30-60 秒)...</div>';
+  result.innerHTML='<div style="text-align:center;padding:24px"><span class="loading"></span><div id="progress-msg" style="margin-top:12px;color:#666">⏳ 第 1 步:合同分类中(约 10-30 秒)...</div><div style="margin-top:8px;color:#999;font-size:12px">整体流程约 1-3 分钟,请耐心等待</div></div>';
   const fd=new FormData();
   fd.append('file',file.files[0]);
+  // 5 分钟超时(法务审核要调 3 次 LLM,deepseek-v4-pro 推理慢)
+  const controller=new AbortController();
+  const timeoutId=setTimeout(()=>controller.abort(),300000);
+  // 进度提示(30 秒后切到第 2 步)
+  const progressTimer=setTimeout(()=>{
+    const pm=document.getElementById('progress-msg');
+    if(pm)pm.innerHTML='⏳ 第 2 步:RAG 检索模板 + 逐条审核中(约 30-90 秒)...';
+  },30000);
   try{
-    const r=await fetch('/api/review/file',{method:'POST',body:fd});
+    const r=await fetch('/api/review/file',{method:'POST',body:fd,signal:controller.signal});
+    clearTimeout(timeoutId);
+    clearTimeout(progressTimer);
     const j=await r.json();
     if(j.items&&!j.error){
       const riskClass=j.overall_risk==='高'?'risk-high':j.overall_risk==='中'?'risk-medium':'risk-low';
@@ -726,7 +736,7 @@ btn.addEventListener('click',async()=>{
     }else{
       result.innerHTML='<div style="color:red;padding:16px;background:#fff0f0;border-radius:8px">❌ '+escapeHtml(j.error||JSON.stringify(j))+'</div>';
     }
-  }catch(e){result.innerHTML='<div style="color:red">错误: '+escapeHtml(e.message)+'</div>'}
+  }catch(e){clearTimeout(timeoutId);clearTimeout(progressTimer);const msg=e.name==='AbortError'?'审核超时(超过 5 分钟),请重试或缩短合同文本':e.message;result.innerHTML='<div style="color:red;padding:16px;background:#fff0f0;border-radius:8px">❌ 错误: '+escapeHtml(msg)+'</div>'}
 });
 
 // === 飞书输出 ===
@@ -916,6 +926,42 @@ def extract_text_from_upload(f, filename):
 
         return text
 
+    if filename.lower().endswith(".docx"):
+        # .docx 本质是 ZIP,直接 UTF-8 解码会得到乱码
+        # 优先用 python-docx 提取;降级用 zipfile 直接读 word/document.xml
+        try:
+            from docx import Document
+            import io
+            doc = Document(io.BytesIO(raw_bytes))
+            paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
+            # 也提取表格里的文字(合同经常用表格)
+            for table in doc.tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        if cell.text.strip():
+                            paragraphs.append(cell.text.strip())
+            text = chr(10).join(paragraphs)
+            if not text.strip():
+                return {"ok": False, "error": ".docx 文件为空或无文本内容"}
+            return text
+        except ImportError:
+            # python-docx 未安装,降级用 zipfile 直接解析
+            try:
+                import zipfile, re
+                with zipfile.ZipFile(io.BytesIO(raw_bytes)) as z:
+                    xml = z.read("word/document.xml").decode("utf-8", errors="ignore")
+                    # 去掉 XML 标签,保留纯文本
+                    text = re.sub(r"<w:p[ >]", chr(10), xml)
+                    text = re.sub(r"<[^>]+>", "", text)
+                    text = re.sub(r"\n{3,}", chr(10)+chr(10), text).strip()
+                    if not text:
+                        return {"ok": False, "error": ".docx 解析失败:文档无文本内容"}
+                    return text
+            except Exception as e:
+                return {"ok": False, "error": f".docx 解析失败(需安装 python-docx 或检查文件): {e}"}
+        except Exception as e:
+            return {"ok": False, "error": f".docx 解析失败: {e}"}
+
     # 其他格式:尝试 UTF-8
     text = raw_bytes.decode("utf-8", errors="ignore")
     if not text.strip():
@@ -1049,13 +1095,16 @@ def search():
 
 def _do_review(text):
     """合同审核核心逻辑: 分类 → 选 Checklist → RAG(同类模板) → 逐条审核"""
+    # 诊断日志:记录提取的文本长度和前 500 字
+    import logging
+    logging.getLogger("app").info(f"[_do_review] 提取文本长度={len(text)}, 前500字={text[:500]!r}")
     # 1. 分类
     snippet = text[:1500]
     classify_prompt = CLASSIFY_PROMPT.format(text=snippet)
     classify_result = chat_json([
         {"role": "system", "content": "你是合同分类助手。只返回 JSON。"},
         {"role": "user", "content": classify_prompt},
-    ], temperature=0.1)
+    ], temperature=0.1, timeout=180)
 
     # 分类失败显式返回错误,不静默回退
     if not isinstance(classify_result, dict) or classify_result.get("_error"):
@@ -1063,6 +1112,7 @@ def _do_review(text):
 
     contract_type = str(classify_result.get("type", "")).strip()
     confidence = classify_result.get("confidence", 0)
+    logging.getLogger("app").info(f"[_do_review] 分类结果: type={contract_type!r} confidence={confidence} raw={classify_result}")
     # 数字化 confidence 并限制到 [0, 1] 范围
     try:
         confidence = float(confidence)
@@ -1127,7 +1177,7 @@ def _do_review(text):
     review_result = chat_json([
         {"role": "system", "content": "你是法务审核专员。逐条检查 Checklist,返回 JSON 数组。"},
         {"role": "user", "content": review_prompt},
-    ], temperature=0.1)
+    ], temperature=0.1, timeout=180)
 
     # 审核失败显式返回错误,不返回空列表 + 风险「低」
     if isinstance(review_result, dict) and review_result.get("_error"):
