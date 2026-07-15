@@ -8,7 +8,7 @@ import math
 from dotenv import load_dotenv
 from cherry_client import chat, chat_json, embed, test_connection
 from checklists import CHECKLISTS, REVIEW_PROMPT
-from feishu_client import list_chats as feishu_list_chats, send_post as feishu_send_post
+from feishu_client import list_chats as feishu_list_chats, send_post as feishu_send_post, send_text as feishu_send_text
 from monitor import init_monitor
 
 load_dotenv()
@@ -23,7 +23,7 @@ LLM_MODEL = os.environ.get("LLM_MODEL", "agent/deepseek-v4-pro")
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "baai/bge-m3")
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "legal.db")
-ALERT_CHAT_ID = os.environ.get("FEISHU_ALERT_CHAT_ID", "oc_00d62cfc111423dab932a402a3965da4")  # 默认 wyl 测试群
+ALERT_CHAT_ID = os.environ.get("FEISHU_ALERT_CHAT_ID", "")  # 留空=跳过飞书推送
 
 # === 合同类型 ===
 CONTRACT_TYPES = ["采购合同", "销售合同-toB", "销售合同-toC", "人事合同"]
@@ -83,118 +83,270 @@ INDEX_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>法务 Agent — 合同审核</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<title>法务 Agent · 企业运营智能化</title>
 <style>
-:root{--primary:#11998e;--primary-dark:#38ef7d;--accent:#52c41a;--warn:#fa8c16;--danger:#f5222d;--bg:#f0f2f5;--card:#fff;--text:#1a1a2e;--text-light:#666;--border:#e8e8e8;--radius:16px;--shadow:0 4px 24px rgba(0,0,0,.06);--shadow-hover:0 8px 32px rgba(17,153,142,.15)}
+:root{
+  --c-primary:#0d9488;--c-primary-2:#14b8a6;--c-primary-3:#5eead4;
+  --c-bg:#0a0f0e;--c-bg-2:#0f1a17;--c-surface:rgba(255,255,255,.04);--c-surface-2:rgba(255,255,255,.08);
+  --c-text:#e4e4e7;--c-text-dim:#a1a1aa;--c-text-muted:#71717a;
+  --c-border:rgba(255,255,255,.08);--c-border-hover:rgba(20,184,166,.4);
+  --c-green:#10b981;--c-amber:#f59e0b;--c-red:#ef4444;--c-blue:#3b82f6;
+  --c-gold:#d4a843;
+  --radius:16px;--radius-sm:10px;
+  --shadow:0 8px 32px rgba(0,0,0,.3);--shadow-glow:0 0 40px rgba(20,184,166,.15);
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',-apple-system,"PingFang SC",sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
-.container{max-width:1000px;margin:0 auto;padding:24px}
-.hero{background:linear-gradient(135deg,#11998e 0%,#38ef7d 100%);color:#fff;padding:48px 40px;border-radius:var(--radius);margin-bottom:28px;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(17,153,142,.25)}
-.hero::before{content:'';position:absolute;top:-50%;right:-20%;width:400px;height:400px;background:rgba(255,255,255,.08);border-radius:50%;animation:float 6s ease-in-out infinite}
-.hero::after{content:'';position:absolute;bottom:-30%;left:-10%;width:300px;height:300px;background:rgba(255,255,255,.06);border-radius:50%;animation:float 8s ease-in-out infinite reverse}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-20px)}}
-.hero-content{position:relative;z-index:1}
-.hero h1{font-size:32px;font-weight:800;margin-bottom:8px;display:flex;align-items:center;gap:12px}
-.hero .subtitle{font-size:16px;opacity:.9;font-weight:400}
-.hero .badge{display:inline-block;background:rgba(255,255,255,.2);backdrop-filter:blur(10px);padding:6px 16px;border-radius:20px;font-size:13px;font-weight:500;margin-top:16px}
-.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:28px}
-.stat-card{background:var(--card);padding:24px;border-radius:var(--radius);box-shadow:var(--shadow);transition:transform .3s,box-shadow .3s}
-.stat-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-hover)}
-.stat-card .stat-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:12px}
-.stat-card .stat-label{font-size:13px;color:var(--text-light);font-weight:500}
-.stat-card .stat-value{font-size:24px;font-weight:700;margin-top:4px}
-.section-title{font-size:20px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.section-title::before{content:'';width:4px;height:24px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));border-radius:2px}
-.card{background:var(--card);padding:28px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px}
-.feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
-.feature-item{padding:20px;border:2px solid var(--border);border-radius:12px;transition:all .3s;cursor:default}
-.feature-item:hover{border-color:var(--primary);transform:translateY(-2px);box-shadow:var(--shadow-hover)}
-.feature-item .feat-icon{font-size:32px;margin-bottom:8px}
-.feature-item h3{font-size:16px;font-weight:600;margin-bottom:6px}
-.feature-item p{font-size:13px;color:var(--text-light)}
-.tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;margin-top:8px}
-.tag-done{background:#f6ffed;color:var(--accent);border:1px solid #b7eb8f}
-.tag-dev{background:#fff7e6;color:var(--warn);border:1px solid #ffd591}
-.status-bar{display:flex;align-items:center;gap:12px;padding:12px 20px;background:linear-gradient(90deg,#f6ffed,#fff);border:1px solid #b7eb8f;border-radius:12px;margin-bottom:16px}
-.status-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
-@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(82,196,26,.4)}70%{box-shadow:0 0 0 8px rgba(82,196,26,0)}100%{box-shadow:0 0 0 0 rgba(82,196,26,0)}}
-.btn-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
-a.btn{display:inline-flex;align-items:center;gap:6px;padding:12px 28px;border-radius:12px;font-size:14px;font-weight:600;text-decoration:none;transition:all .3s}
-.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;box-shadow:0 4px 16px rgba(17,153,142,.3)}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(17,153,142,.4)}
-.btn-secondary{background:#fff;color:var(--primary);border:2px solid var(--primary)}
-.btn-secondary:hover{background:var(--primary);color:#fff}
-.btn-accent{background:linear-gradient(135deg,#52c41a,#389e0d);color:#fff;box-shadow:0 4px 16px rgba(82,196,26,.3)}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--c-bg);color:var(--c-text);line-height:1.6;overflow-x:hidden;
+  min-height:100vh;
+}
+/* 装饰性背景 */
+body::before{content:'';position:fixed;inset:0;z-index:-2;background:
+  radial-gradient(ellipse 80% 50% at 20% 0%,rgba(13,148,136,.15),transparent),
+  radial-gradient(ellipse 60% 50% at 80% 30%,rgba(94,234,212,.1),transparent),
+  radial-gradient(ellipse 50% 50% at 50% 100%,rgba(20,184,166,.08),transparent),
+  var(--c-bg)}
+body::after{content:'';position:fixed;inset:0;z-index:-1;opacity:.4;
+  background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
+  background-size:60px 60px;mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,#000,transparent)}
+
+/* 顶部导航 */
+.nav{position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);background:rgba(10,15,14,.7);border-bottom:1px solid var(--c-border)}
+.nav-inner{max-width:1100px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;color:var(--c-text);text-decoration:none}
+.nav-brand-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-3));display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(13,148,136,.4)}
+.nav-brand-text{background:linear-gradient(135deg,#fff,#5eead4);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.nav-links{display:flex;gap:4px;align-items:center}
+.nav-links a{padding:8px 14px;border-radius:8px;font-size:13.5px;font-weight:500;color:var(--c-text-dim);text-decoration:none;transition:all .2s}
+.nav-links a:hover{color:var(--c-text);background:var(--c-surface)}
+.nav-status{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);font-size:12px;color:var(--c-green);font-weight:600}
+.nav-status .dot{width:6px;height:6px;border-radius:50%;background:var(--c-green);box-shadow:0 0 8px var(--c-green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* 主容器 */
+.wrap{max-width:1100px;margin:0 auto;padding:40px 24px 80px}
+
+/* Hero */
+.hero{position:relative;padding:60px 0 40px;text-align:center}
+.hero-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;background:var(--c-surface-2);border:1px solid var(--c-border);font-size:12.5px;font-weight:600;color:var(--c-primary-3);margin-bottom:24px;letter-spacing:.5px}
+.hero-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--c-primary-2);box-shadow:0 0 8px var(--c-primary-2)}
+.hero h1{font-size:clamp(38px,6vw,64px);font-weight:800;line-height:1.1;letter-spacing:-.02em;margin-bottom:20px}
+.hero h1 .grad{background:linear-gradient(135deg,#5eead4 0%,#2dd4bf 50%,#14b8a6 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:17px;color:var(--c-text-dim);max-width:600px;margin:0 auto 36px;line-height:1.7}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;border-radius:12px;font-size:14.5px;font-weight:600;text-decoration:none;transition:all .25s;cursor:pointer;border:none;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;box-shadow:0 4px 20px rgba(13,148,136,.4)}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(13,148,136,.5)}
+.btn-ghost{background:var(--c-surface);color:var(--c-text);border:1px solid var(--c-border)}
+.btn-ghost:hover{background:var(--c-surface-2);border-color:var(--c-border-hover)}
+
+/* 统计卡片 */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:48px 0}
+.stat{position:relative;padding:24px;border-radius:var(--radius);background:var(--c-surface);border:1px solid var(--c-border);overflow:hidden;transition:all .3s}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(20,184,166,.5),transparent)}
+.stat:hover{border-color:var(--c-border-hover);transform:translateY(-3px);box-shadow:var(--shadow-glow)}
+.stat-label{font-size:12px;color:var(--c-text-muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+.stat-value{font-size:30px;font-weight:800;letter-spacing:-.02em}
+.stat-value .unit{font-size:14px;font-weight:500;color:var(--c-text-dim);margin-left:4px}
+.stat-trend{font-size:12px;color:var(--c-green);margin-top:6px;font-weight:600}
+
+/* 分区标题 */
+.section{margin:56px 0 24px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.section-title{font-size:22px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+.section-title::before{content:'';width:4px;height:24px;border-radius:2px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-3))}
+.section-sub{font-size:13.5px;color:var(--c-text-muted)}
+
+/* 功能卡片 */
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.feat{position:relative;padding:28px;border-radius:var(--radius);background:var(--c-surface);border:1px solid var(--c-border);transition:all .3s;cursor:default;overflow:hidden}
+.feat::after{content:'';position:absolute;top:-50%;right:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(20,184,166,.06),transparent 50%);opacity:0;transition:opacity .3s;pointer-events:none}
+.feat:hover{border-color:var(--c-border-hover);transform:translateY(-4px)}
+.feat:hover::after{opacity:1}
+.feat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;background:var(--c-surface-2)}
+.feat-icon.teal{background:linear-gradient(135deg,rgba(13,148,136,.2),rgba(94,234,212,.2));box-shadow:0 0 20px rgba(13,148,136,.15)}
+.feat-icon.green{background:linear-gradient(135deg,rgba(16,185,129,.2),rgba(52,211,153,.2));box-shadow:0 0 20px rgba(16,185,129,.15)}
+.feat-icon.blue{background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(96,165,250,.2));box-shadow:0 0 20px rgba(59,130,246,.15)}
+.feat-icon.amber{background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(251,191,36,.2));box-shadow:0 0 20px rgba(245,158,11,.15)}
+.feat-icon.gold{background:linear-gradient(135deg,rgba(212,168,67,.2),rgba(251,191,36,.2));box-shadow:0 0 20px rgba(212,168,67,.15)}
+.feat h3{font-size:16.5px;font-weight:700;margin-bottom:8px}
+.feat p{font-size:13.5px;color:var(--c-text-dim);line-height:1.65;margin-bottom:14px}
+.feat-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:11.5px;font-weight:600}
+.badge-done{background:rgba(16,185,129,.12);color:var(--c-green);border:1px solid rgba(16,185,129,.2)}
+
+/* CTA 大卡片 */
+.cta-card{margin-top:48px;padding:48px;border-radius:24px;background:linear-gradient(135deg,rgba(13,148,136,.1),rgba(94,234,212,.1));border:1px solid var(--c-border);text-align:center;position:relative;overflow:hidden}
+.cta-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(20,184,166,.15),transparent 60%);pointer-events:none}
+.cta-card h2{font-size:26px;font-weight:700;margin-bottom:10px;position:relative}
+.cta-card p{color:var(--c-text-dim);margin-bottom:24px;position:relative}
+.cta-card .hero-cta{position:relative}
+
+/* 技术栈 */
+.tech{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:48px;padding-top:32px;border-top:1px solid var(--c-border)}
+.tech-item{padding:6px 14px;border-radius:8px;background:var(--c-surface);border:1px solid var(--c-border);font-size:12px;color:var(--c-text-dim);font-weight:500;transition:all .2s}
+.tech-item:hover{color:var(--c-text);border-color:var(--c-border-hover)}
+
+/* 底部 */
+.footer{text-align:center;padding:32px 0 0;color:var(--c-text-muted);font-size:12.5px}
+.footer a{color:var(--c-text-dim);text-decoration:none}
+
+/* 响应式 */
+@media(max-width:640px){
+  .nav-links{display:none}
+  .hero{padding:40px 0 24px}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .features{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="hero">
-    <div class="hero-content">
-      <h1>⚖️ 法务 Agent</h1>
-      <p class="subtitle">合同审核 · 风险 Checklist · RAG 知识库</p>
-      <span class="badge">🚀 D4 已上线 · 审核结果可视化 + 飞书输出</span>
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="nav-brand" href="/">
+      <span class="nav-brand-icon">⚖️</span>
+      <span class="nav-brand-text">Legal Agent</span>
+    </a>
+    <div class="nav-links">
+      <a href="/upload">合同审核</a>
+      <a href="/icp">ICP 文档</a>
+      <a href="/monitor">监控</a>
+      <a href="/api/documents" target="_blank">知识库</a>
     </div>
+    <div class="nav-status"><span class="dot"></span> 运行中</div>
   </div>
+</nav>
 
-  <div class="status-bar">
-    <div class="status-dot"></div>
-    <span><b>系统运行中</b> · 端口 5003 · 服务器 124.222.181.129</span>
-  </div>
+<div class="wrap">
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-tag">D7 · 企业运营智能化 Demo</div>
+    <h1>智能<span class="grad">合同审核</span><br>与法律风险把控</h1>
+    <p>上传合同 PDF / 文本,AI 自动分类识别,79 项风险 Checklist 逐条审核,RAG 检索模板条款,输出修改建议与风险报告,支持 OCR 扫描件。</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="/upload">📄 上传合同</a>
+      <a class="btn btn-ghost" href="/icp">📋 ICP 需求文档</a>
+      <a class="btn btn-ghost" href="/api/documents" target="_blank">📚 知识库</a>
+    </div>
+  </section>
 
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-icon" style="background:#f6ffed">📋</div>
+  <!-- 实时统计 -->
+  <div class="stats" id="stats">
+    <div class="stat">
       <div class="stat-label">合同模板</div>
-      <div class="stat-value">4 类</div>
+      <div class="stat-value">4<span class="unit">类</span></div>
+      <div class="stat-trend" style="color:var(--c-text-muted)">采购/toB/toC/人事</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon" style="background:#f0f5ff">🔍</div>
+    <div class="stat">
       <div class="stat-label">风险检查点</div>
-      <div class="stat-value">79 项</div>
+      <div class="stat-value">79<span class="unit">项</span></div>
+      <div class="stat-trend" style="color:var(--c-text-muted)">逐条审核</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon" style="background:#fff7e6">📚</div>
-      <div class="stat-label">知识库</div>
-      <div class="stat-value">12 chunks</div>
+    <div class="stat">
+      <div class="stat-label">知识库文档</div>
+      <div class="stat-value"><span id="s-docs">—</span><span class="unit">篇</span></div>
+      <div class="stat-trend" id="s-chunks">加载中...</div>
     </div>
-  </div>
-
-  <h2 class="section-title">功能模块</h2>
-  <div class="feature-grid">
-    <div class="feature-item">
-      <div class="feat-icon">📄</div>
-      <h3>合同分类</h3>
-      <p>上传 PDF → AI 自动识别类型(采购/toB/toC/人事)</p>
-      <span class="tag tag-done">✅ D2 已实现</span>
-    </div>
-    <div class="feature-item">
-      <div class="feat-icon">🔍</div>
-      <h3>合同审核</h3>
-      <p>风险 Checklist 逐条审核 + 修改建议 + 模板引用 + 飞书输出</p>
-      <span class="tag tag-done">✅ D4 已实现</span>
-    </div>
-    <div class="feature-item">
-      <div class="feat-icon">📚</div>
-      <h3>RAG 知识库</h3>
-      <p>4 类合同模板入库,审核时自动检索参考条款</p>
-      <span class="tag tag-done">✅ D2 已实现</span>
-    </div>
-    <div class="feature-item">
-      <div class="feat-icon">📝</div>
-      <h3>ICP 外包文档</h3>
-      <p>输出 ICP 备案外包需求文档,直发代理公司</p>
-      <span class="tag tag-dev">⏳ D6 开发中</span>
+    <div class="stat">
+      <div class="stat-label">服务状态</div>
+      <div class="stat-value" style="font-size:18px;color:var(--c-green)">● Online</div>
+      <div class="stat-trend" style="color:var(--c-text-muted)" id="s-uptime">端口 5003</div>
     </div>
   </div>
 
-  <div class="btn-row">
-    <a class="btn btn-primary" href="/upload">📄 前往审核</a>
-    <a class="btn btn-accent" href="/icp">📋 ICP 需求文档</a>
-    <a class="btn btn-secondary" href="/api/documents" target="_blank">📚 知识库</a>
+  <!-- 功能模块 -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">功能模块</div>
+      <div class="section-sub">7 天交付 · 49 个单元测试全绿</div>
+    </div>
+    <div class="features">
+      <div class="feat">
+        <div class="feat-icon teal">📄</div>
+        <h3>合同分类</h3>
+        <p>上传 PDF / TXT → AI 自动识别合同类型(采购 / toB / toC / 人事),返回类型 + 置信度 + 理由。</p>
+        <span class="feat-badge badge-done">✅ 已上线</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon amber">🔍</div>
+        <h3>合同审核</h3>
+        <p>79 项风险 Checklist 逐条审核,输出 pass / warn / fail 三级状态 + 修改建议 + 整体风险评级。</p>
+        <span class="feat-badge badge-done">✅ 已上线</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon green">📚</div>
+        <h3>RAG 知识库</h3>
+        <p>4 类合同模板入库,bge-m3 向量检索,审核时自动召回参考条款,支持相似度排序与引用回显。</p>
+        <span class="feat-badge badge-done">✅ 已上线</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon blue">🖨️</div>
+        <h3>OCR 扫描件</h3>
+        <p>pypdf 文本提取 + tesseract OCR 降级方案,扫描 PDF 自动识别文字(200 DPI, chi_sim + eng)。</p>
+        <span class="feat-badge badge-done">✅ 已上线</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon gold">📝</div>
+        <h3>ICP 需求文档</h3>
+        <p>AI 生成 ICP 备案外包需求文档(9 章结构),填表即生成,支持一键推送飞书给代理公司。</p>
+        <span class="feat-badge badge-done">✅ 已上线</span>
+      </div>
+      <div class="feat">
+        <div class="feat-icon teal">📤</div>
+        <h3>飞书输出</h3>
+        <p>审核结果 / ICP 文档一键推送飞书群,支持 Bot 交互式查询(审核 / 模板 / 帮助)。</p>
+        <span class="feat-badge badge-done">✅ 已上线</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-card">
+    <h2>开始审核</h2>
+    <p>上传你的第一份合同,体验 AI 分类 + 风险审核 + 模板引用全流程</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="/upload">📄 立即上传</a>
+      <a class="btn btn-ghost" href="/icp">📋 生成 ICP 文档</a>
+    </div>
+  </div>
+
+  <!-- 技术栈 -->
+  <div class="tech">
+    <span class="tech-item">Python Flask</span>
+    <span class="tech-item">CherryIN API</span>
+    <span class="tech-item">DeepSeek V4 Pro</span>
+    <span class="tech-item">BGE-M3 Embedding</span>
+    <span class="tech-item">SQLite + 向量检索</span>
+    <span class="tech-item">Tesseract OCR</span>
+    <span class="tech-item">飞书 OpenAPI</span>
+  </div>
+
+  <div class="footer">
+    企业运营智能化 Demo · 法务 Agent v1.0 · 服务器 124.222.181.129:5003<br>
+    基于 2026-07-09 线下拜访会议需求 · 7 天敏捷交付
   </div>
 </div>
+
+<script>
+async function loadStats(){
+  try{
+    const [docsResp, statsResp] = await Promise.all([
+      fetch('/api/documents').then(r=>r.json()).catch(()=>null),
+      fetch('/api/stats').then(r=>r.json()).catch(()=>null)
+    ]);
+    if(docsResp && docsResp.documents){
+      const totalChunks = docsResp.documents.reduce((s,d)=>s+(d.chunk_count||0),0);
+      document.getElementById('s-docs').textContent = docsResp.documents.length;
+      document.getElementById('s-chunks').textContent = totalChunks + ' chunks 已入库';
+    }
+    if(statsResp && statsResp.uptime_human){
+      document.getElementById('s-uptime').textContent = '运行 ' + statsResp.uptime_human;
+    }
+  }catch(e){console.log('stats load failed',e)}
+}
+loadStats();
+</script>
 </body>
 </html>"""
 
@@ -861,7 +1013,9 @@ def search():
     conn = sqlite3.connect(DB_PATH)
     try:
         c = conn.cursor()
-        c.execute("SELECT id, doc_id, chunk_index, chunk_text, embedding FROM chunks")
+        c.execute("""SELECT ch.id, ch.doc_id, ch.chunk_index, ch.chunk_text, ch.embedding,
+                            d.doc_name, d.doc_type
+                     FROM chunks ch JOIN documents d ON ch.doc_id = d.id""")
         scored = []
         norm_q = math.sqrt(sum(x * x for x in query_vec))
         for row in c.fetchall():
@@ -882,6 +1036,8 @@ def search():
             "score": round(sim, 4),
             "chunk_index": row[2],
             "chunk_text": text_preview,
+            "doc_name": row[5] or "",
+            "doc_type": row[6] or "",
         })
     return jsonify({"ok": True, "query": query, "results": results})
 
@@ -1194,6 +1350,79 @@ def icp_send_feishu():
 
 
 # === 飞书 webhook ===
+_PROCESSED_MSG_IDS = set()
+_MAX_MSG_CACHE = 200
+
+
+def _handle_feishu_message(text, chat_id):
+    """处理飞书消息指令,异步调用(不阻塞 webhook 响应)"""
+    text = (text or "").strip()
+    try:
+        if "帮助" in text or text.lower() in ("help", "?", "？"):
+            feishu_send_text(chat_id,
+                "🤖 法务审核助手 · 指令列表\n"
+                "──────────────\n"
+                "审核  — 查看审核示例报告\n"
+                "模板  — 查看已入库合同模板\n"
+                "帮助  — 显示本指令列表\n"
+                "──────────────\n"
+                "直接发送关键词即可,无需@")
+
+        elif "审核" in text or "示例" in text:
+            # 用 test_contract.txt 做示例审核
+            import os
+            test_file = os.path.join(os.path.dirname(__file__), "test_contract.txt")
+            if os.path.exists(test_file):
+                with open(test_file, "r", encoding="utf-8") as f:
+                    contract_text = f.read()
+                feishu_send_text(chat_id, "⏳ 正在审核示例合同,请稍候 30-60 秒...")
+                result = _do_review(contract_text)
+                if result.get("ok"):
+                    stats = result.get("stats", {})
+                    lines = [
+                        f"📋 示例审核报告",
+                        f"合同类型: {result.get('contract_type', '未知')}",
+                        f"风险等级: {result.get('overall_risk', '未知')}",
+                        f"统计: 通过 {stats.get('pass', 0)} / 警告 {stats.get('warn', 0)} / 不合规 {stats.get('fail', 0)} (共 {stats.get('total', 0)} 项)",
+                        "",
+                    ]
+                    for item in result.get("items", [])[:5]:
+                        status = item.get("status", "")
+                        emoji = {"pass": "✅", "warn": "⚠️", "fail": "❌"}.get(status, "")
+                        issue = item.get("issue", item.get("suggestion", ""))[:60]
+                        lines.append(f"{emoji} {item.get('item', '')[:30]}: {issue}")
+                    feishu_send_text(chat_id, "\n".join(lines))
+                else:
+                    feishu_send_text(chat_id, f"❌ 审核失败: {result.get('error', '未知错误')}")
+            else:
+                feishu_send_text(chat_id, "📄 未找到示例合同文件。")
+
+        elif "模板" in text or "文档" in text:
+            conn = sqlite3.connect(DB_PATH)
+            try:
+                c = conn.cursor()
+                c.execute("SELECT doc_type, doc_name, chunk_count FROM documents ORDER BY id")
+                rows = c.fetchall()
+            finally:
+                conn.close()
+            if rows:
+                lines = ["📚 已入库合同模板:"]
+                for doc_type, doc_name, chunk_count in rows:
+                    lines.append(f"  • {doc_name} ({doc_type}, {chunk_count} chunks)")
+                feishu_send_text(chat_id, "\n".join(lines))
+            else:
+                feishu_send_text(chat_id, "📚 知识库暂无文档。")
+
+        else:
+            feishu_send_text(chat_id,
+                f"收到: {text[:50]}\n发送\"帮助\"查看可用指令。")
+    except Exception as e:
+        try:
+            feishu_send_text(chat_id, f"❌ 处理消息时出错: {e}")
+        except Exception:
+            pass
+
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     """飞书事件订阅回调
@@ -1204,6 +1433,36 @@ def webhook():
     data = request.get_json(silent=True) or {}
     if "challenge" in data:
         return jsonify({"challenge": data["challenge"]})
+
+    header = data.get("header", {})
+    event = data.get("event", {})
+    msg = event.get("message", {})
+    if not msg:
+        return jsonify({"ok": True})
+
+    # 消息去重
+    msg_id = msg.get("message_id", "")
+    if msg_id and msg_id in _PROCESSED_MSG_IDS:
+        return jsonify({"ok": True, "dedup": True})
+    if msg_id:
+        _PROCESSED_MSG_IDS.add(msg_id)
+        if len(_PROCESSED_MSG_IDS) > _MAX_MSG_CACHE:
+            _PROCESSED_MSG_IDS.pop()
+
+    chat_id = msg.get("chat_id", "")
+    content_str = msg.get("content", "{}")
+    try:
+        content = json.loads(content_str) if isinstance(content_str, str) else content_str
+    except (json.JSONDecodeError, TypeError):
+        content = {}
+    text = content.get("text", "")
+
+    # 异步处理
+    if chat_id and text:
+        import threading
+        t = threading.Thread(target=_handle_feishu_message, args=(text, chat_id), daemon=True)
+        t.start()
+
     return jsonify({"ok": True})
 
 
