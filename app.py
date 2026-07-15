@@ -687,7 +687,7 @@ btn.addEventListener('click',async()=>{
   try{
     const r=await fetch('/api/review/file',{method:'POST',body:fd});
     const j=await r.json();
-    if(j.ok){
+    if(j.items&&!j.error){
       const riskClass=j.overall_risk==='高'?'risk-high':j.overall_risk==='中'?'risk-medium':'risk-low';
       let html='<div class="result-summary">';
       html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">';
