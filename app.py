@@ -22,7 +22,7 @@ CHERRYIN_BASE_URL = os.environ.get("CHERRYIN_BASE_URL", "https://express-ent-adm
 LLM_MODEL = os.environ.get("LLM_MODEL", "agent/deepseek-v4-pro")
 EMBED_MODEL = os.environ.get("EMBED_MODEL", "baai/bge-m3")
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "legal.db")
+DB_PATH = os.path.join(os.environ.get("DATA_DIR", os.path.dirname(__file__)), "legal.db")
 ALERT_CHAT_ID = os.environ.get("FEISHU_ALERT_CHAT_ID", "")  # 留空=跳过飞书推送
 
 # === 合同类型 ===
@@ -1523,4 +1523,4 @@ def webhook():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5003, debug=os.environ.get("FLASK_DEBUG") == "1")
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5003)), debug=os.environ.get("FLASK_DEBUG") == "1")
