@@ -1,6 +1,9 @@
 [build]
+builder = "RAILPACK"
+
 [deploy]
-healthcheckPath = /health
+startCommand = "python app.py"
+healthcheckPath = "/health"
 healthcheckTimeout = 300
-restartPolicyType = ON_FAILURE
+restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
