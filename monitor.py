@@ -308,48 +308,42 @@ MONITOR_HTML = """<!DOCTYPE html>
 <title>监控仪表盘 · {{ service }}</title>
 <style>
 :root{
-  --c-primary:#10b981;--c-primary-2:#34d399;--c-primary-3:#6ee7b7;
-  --c-bg:#0f0f1a;--c-surface:rgba(255,255,255,.04);--c-surface-2:rgba(255,255,255,.08);
-  --c-text:#e4e4e7;--c-text-dim:#a1a1aa;--c-text-muted:#71717a;
-  --c-border:rgba(255,255,255,.08);--c-border-hover:rgba(52,211,153,.4);
+  --c-bg:#0a0f0d;--c-surface:#11171420;--c-surface-2:#1a221d;
+  --c-text:#d4d4d8;--c-text-dim:#8a8a8f;--c-text-muted:#5c5c63;
+  --c-border:#ffffff14;--c-border-strong:#ffffff26;
+  --c-accent:#10b981;--c-accent-dim:#10b98130;
   --c-green:#10b981;--c-amber:#f59e0b;--c-red:#ef4444;
-  --radius:16px;--radius-sm:10px;
-  --shadow-glow:0 0 40px rgba(52,211,153,.15);
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Segoe UI","Kaiti SC","STKaiti","KaiTi","楷体",sans-serif;background:var(--c-bg);color:var(--c-text);line-height:1.6;padding:24px;min-height:100vh}
-body::before{content:'';position:fixed;inset:0;z-index:-2;background:
-  radial-gradient(ellipse 80% 50% at 20% 0%,rgba(16,185,129,.15),transparent),
-  radial-gradient(ellipse 60% 50% at 80% 30%,rgba(110,231,183,.12),transparent),
-  radial-gradient(ellipse 50% 50% at 50% 100%,rgba(52,211,153,.1),transparent),
-  var(--c-bg)}
-.container{max-width:1200px;margin:0 auto}
-h1{font-size:24px;font-weight:800;margin-bottom:8px;background:linear-gradient(135deg,#34d399,#10b981);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.subtitle{color:var(--c-text-muted);font-size:14px;margin-bottom:24px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
-.card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);padding:20px;backdrop-filter:blur(10px);position:relative;overflow:hidden}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(52,211,153,.4),transparent)}
-.card .label{font-size:12px;color:var(--c-text-muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
-.card .value{font-size:28px;font-weight:800;margin-top:6px;color:var(--c-text)}
-.card .sub{font-size:12px;color:var(--c-text-muted);margin-top:4px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;background:var(--c-bg);color:var(--c-text);line-height:1.6;font-size:14px;padding:24px;min-height:100vh;-webkit-font-smoothing:antialiased}
+.container{max-width:1040px;margin:0 auto}
+.page-head{margin-bottom:20px}
+h1{font-size:20px;font-weight:700;color:#f4f4f5;letter-spacing:-.02em;margin-bottom:2px}
+.subtitle{color:var(--c-text-muted);font-size:12.5px}
+.actions{margin-bottom:20px;display:flex;gap:8px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--c-border);border:1px solid var(--c-border);border-radius:6px;overflow:hidden;margin-bottom:20px}
+.card{background:var(--c-bg);padding:16px 18px}
+.card .label{font-size:11px;color:var(--c-text-muted);letter-spacing:.04em;text-transform:uppercase;font-weight:500}
+.card .value{font-size:22px;font-weight:700;margin-top:4px;color:#f4f4f5;letter-spacing:-.02em;font-feature-settings:"tnum"}
+.card .sub{font-size:11px;color:var(--c-text-muted);margin-top:3px}
 .card.alert .value{color:var(--c-red)}
 .card.warn .value{color:var(--c-amber)}
 .card.ok .value{color:var(--c-green)}
-.section{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);padding:24px;margin-bottom:24px;backdrop-filter:blur(10px);position:relative;overflow:hidden}
-.section::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(52,211,153,.4),transparent)}
-.section h2{font-size:16px;font-weight:700;margin-bottom:16px;color:var(--c-text)}
-table{width:100%;border-collapse:collapse;font-size:13.5px}
-th{text-align:left;padding:12px;color:var(--c-text-dim);font-weight:600;border-bottom:1px solid var(--c-border);background:var(--c-surface-2);text-transform:uppercase;letter-spacing:.3px;font-size:12.5px}
-td{padding:12px;border-bottom:1px solid var(--c-border);color:var(--c-text)}
+.section{background:transparent;border:1px solid var(--c-border);border-radius:6px;padding:18px;margin-bottom:16px}
+.section h2{font-size:13px;font-weight:600;color:var(--c-text);margin-bottom:12px;letter-spacing:-.01em}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;padding:8px 10px;color:var(--c-text-muted);font-weight:500;border-bottom:1px solid var(--c-border);font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+td{padding:9px 10px;border-bottom:1px solid var(--c-border);color:var(--c-text)}
+tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--c-surface)}
-.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
-.badge-red{background:rgba(239,68,68,.15);color:var(--c-red);border:1px solid rgba(239,68,68,.3)}
-.badge-yellow{background:rgba(245,158,11,.15);color:var(--c-amber);border:1px solid rgba(245,158,11,.3)}
-.badge-green{background:rgba(16,185,129,.15);color:var(--c-green);border:1px solid rgba(16,185,129,.3)}
-.refresh-btn{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-3));color:#fff;border:none;padding:10px 22px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;margin-bottom:16px;box-shadow:0 4px 16px rgba(16,185,129,.3);transition:all .25s}
-.refresh-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(16,185,129,.5)}
+.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10.5px;font-weight:600;border:1px solid;letter-spacing:.02em}
+.badge-red{background:#ef44441a;color:var(--c-red);border-color:#ef444433}
+.badge-yellow{background:#f59e0b1a;color:var(--c-amber);border-color:#f59e0b33}
+.badge-green{background:var(--c-accent-dim);color:var(--c-green);border-color:var(--c-accent-dim)}
+.refresh-btn{background:transparent;color:var(--c-text-dim);border:1px solid var(--c-border-strong);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:500;font-family:inherit;transition:all .15s}
+.refresh-btn:hover{color:var(--c-text);border-color:#ffffff40}
 .error-list{max-height:400px;overflow-y:auto}
-.empty{color:var(--c-text-muted);text-align:center;padding:20px}
+.empty{color:var(--c-text-muted);text-align:center;padding:16px;font-size:12.5px}
 </style>
 </head>
 <body>
@@ -432,7 +426,7 @@ tr:hover td{background:var(--c-surface)}
         {% else %}<div class="empty">无告警记录</div>{% endif %}
         <div style="margin-top:12px">
             <form method="POST" action="/api/alert/test" style="display:inline">
-                <button type="submit" class="refresh-btn" style="background:linear-gradient(135deg,#f59e0b,#f97316)">🧪 发送测试告警</button>
+                <button type="submit" class="refresh-btn" style="color:var(--c-amber);border-color:#f59e0b33">发送测试告警</button>
             </form>
         </div>
     </div>

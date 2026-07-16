@@ -95,121 +95,96 @@ INDEX_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>法务 Agent · 企业运营智能化</title>
+<title>法务 Agent · 合同审核系统</title>
 <style>
 :root{
-  --c-primary:#10b981;--c-primary-2:#34d399;--c-primary-3:#6ee7b7;
-  --c-bg:#0a1410;--c-bg-2:#0f1a14;--c-surface:rgba(255,255,255,.04);--c-surface-2:rgba(255,255,255,.08);
-  --c-text:#e4e4e7;--c-text-dim:#a1a1aa;--c-text-muted:#71717a;
-  --c-border:rgba(255,255,255,.08);--c-border-hover:rgba(52,211,153,.4);
-  --c-green:#10b981;--c-amber:#f59e0b;--c-red:#ef4444;--c-blue:#3b82f6;
-  --c-gold:#d4a843;
-  --radius:16px;--radius-sm:10px;
-  --shadow:0 8px 32px rgba(0,0,0,.3);--shadow-glow:0 0 40px rgba(52,211,153,.15);
+  --c-bg:#0a0f0d;--c-surface:#11171420;--c-surface-2:#1a221d;
+  --c-text:#d4d4d8;--c-text-dim:#8a8a8f;--c-text-muted:#5c5c63;
+  --c-border:#ffffff14;--c-border-strong:#ffffff26;
+  --c-accent:#10b981;--c-accent-dim:#10b98130;
+  --c-green:#10b981;--c-amber:#f59e0b;--c-red:#ef4444;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{
-  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Segoe UI","Kaiti SC","STKaiti","KaiTi","楷体",sans-serif;
-  background:var(--c-bg);color:var(--c-text);line-height:1.6;overflow-x:hidden;
-  min-height:100vh;
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--c-bg);color:var(--c-text);line-height:1.6;font-size:14px;min-height:100vh;
+  -webkit-font-smoothing:antialiased;
 }
-/* 装饰性背景 */
-body::before{content:'';position:fixed;inset:0;z-index:-2;background:
-  radial-gradient(ellipse 80% 50% at 20% 0%,rgba(16,185,129,.15),transparent),
-  radial-gradient(ellipse 60% 50% at 80% 30%,rgba(110,231,183,.12),transparent),
-  radial-gradient(ellipse 50% 50% at 50% 100%,rgba(52,211,153,.1),transparent),
-  var(--c-bg)}
-body::after{content:'';position:fixed;inset:0;z-index:-1;opacity:.4;
-  background-image:linear-gradient(rgba(255,255,255,.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.015) 1px,transparent 1px);
-  background-size:60px 60px;mask-image:radial-gradient(ellipse 80% 60% at 50% 30%,#000,transparent)}
 
-/* 顶部导航 */
-.nav{position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);background:rgba(10,20,16,.7);border-bottom:1px solid var(--c-border)}
-.nav-inner{max-width:1100px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
-.nav-brand{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Songti SC","STSong","SimSun","宋体",sans-serif;display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;color:var(--c-text);text-decoration:none}
-.nav-brand-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-3));display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(16,185,129,.4)}
-.nav-brand-text{background:linear-gradient(135deg,#fff,#6ee7b7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.nav-links{display:flex;gap:4px;align-items:center}
-.nav-links a{padding:8px 14px;border-radius:8px;font-size:13.5px;font-weight:500;color:var(--c-text-dim);text-decoration:none;transition:all .2s}
+/* 导航 - 极简,无玻璃态,实色边框 */
+.nav{border-bottom:1px solid var(--c-border);background:var(--c-bg)}
+.nav-inner{max-width:1040px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--c-text);text-decoration:none;letter-spacing:-.01em}
+.nav-brand-mark{width:22px;height:22px;border-radius:5px;background:var(--c-accent);display:flex;align-items:center;justify-content:center;color:#0a0f0d;font-size:12px;font-weight:800}
+.nav-brand-sub{color:var(--c-text-muted);font-weight:400;font-size:12px;margin-left:1px}
+.nav-links{display:flex;gap:2px;align-items:center}
+.nav-links a{padding:6px 12px;border-radius:6px;font-size:13px;font-weight:500;color:var(--c-text-dim);text-decoration:none;transition:color .15s,background .15s}
 .nav-links a:hover{color:var(--c-text);background:var(--c-surface)}
-.nav-status{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.2);font-size:12px;color:var(--c-green);font-weight:600}
-.nav-status .dot{width:6px;height:6px;border-radius:50%;background:var(--c-green);box-shadow:0 0 8px var(--c-green);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
 
-/* 主容器 */
-.wrap{max-width:1100px;margin:0 auto;padding:40px 24px 80px}
+.wrap{max-width:1040px;margin:0 auto;padding:48px 24px 64px}
 
-/* Hero */
-.hero{position:relative;padding:60px 0 40px;text-align:center}
-.hero-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:20px;background:var(--c-surface-2);border:1px solid var(--c-border);font-size:12.5px;font-weight:600;color:var(--c-primary-3);margin-bottom:24px;letter-spacing:.5px}
-.hero-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--c-primary-2);box-shadow:0 0 8px var(--c-primary-2)}
-.hero h1{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Songti SC","STSong","SimSun","宋体",sans-serif;font-size:clamp(38px,6vw,64px);font-weight:800;line-height:1.1;letter-spacing:-.02em;margin-bottom:20px}
-.hero h1 .grad{background:linear-gradient(135deg,#34d399 0%,#10b981 50%,#059669 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.hero p{font-size:17px;color:var(--c-text-dim);max-width:600px;margin:0 auto 36px;line-height:1.7}
-.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;border-radius:12px;font-size:14.5px;font-weight:600;text-decoration:none;transition:all .25s;cursor:pointer;border:none;font-family:inherit}
-.btn-primary{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-2));color:#fff;box-shadow:0 4px 20px rgba(16,185,129,.4)}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(16,185,129,.5)}
-.btn-ghost{background:var(--c-surface);color:var(--c-text);border:1px solid var(--c-border)}
-.btn-ghost:hover{background:var(--c-surface-2);border-color:var(--c-border-hover)}
+/* Hero - 左对齐,不居中,字号克制 */
+.hero{margin-bottom:56px;max-width:680px}
+.hero-eyebrow{font-size:12px;color:var(--c-accent);font-weight:600;letter-spacing:.04em;margin-bottom:14px;text-transform:uppercase;font-feature-settings:"tnum"}
+.hero h1{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1.25;margin-bottom:14px;color:#f4f4f5}
+.hero h1 .accent{color:var(--c-accent)}
+.hero p{font-size:14.5px;color:var(--c-text-dim);line-height:1.7;margin-bottom:24px;max-width:560px}
+.hero-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:500;text-decoration:none;transition:background .15s,border-color .15s;cursor:pointer;border:1px solid transparent;font-family:inherit;line-height:1.4}
+.btn-primary{background:var(--c-accent);color:#0a0f0d;font-weight:600}
+.btn-primary:hover{background:#0f9a72}
+.btn-ghost{background:transparent;color:var(--c-text-dim);border:1px solid var(--c-border-strong)}
+.btn-ghost:hover{color:var(--c-text);border-color:#ffffff40;background:var(--c-surface)}
 
-/* 统计卡片 */
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin:48px 0}
-.stat{position:relative;padding:24px;border-radius:var(--radius);background:var(--c-surface);border:1px solid var(--c-border);overflow:hidden;transition:all .3s}
-.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(52,211,153,.4),transparent)}
-.stat:hover{border-color:var(--c-border-hover);transform:translateY(-3px);box-shadow:var(--shadow-glow)}
-.stat-label{font-size:12px;color:var(--c-text-muted);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
-.stat-value{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;font-size:30px;font-weight:800;letter-spacing:-.02em}
-.stat-value .unit{font-size:14px;font-weight:500;color:var(--c-text-dim);margin-left:4px}
-.stat-trend{font-size:12px;color:var(--c-green);margin-top:6px;font-weight:600}
+/* 指标条 - 紧凑横排,不是大卡片 */
+.metrics{display:flex;gap:0;padding:18px 0;border-top:1px solid var(--c-border);border-bottom:1px solid var(--c-border);margin-bottom:56px}
+.metric{flex:1;padding:0 20px;border-right:1px solid var(--c-border);display:flex;flex-direction:column;gap:3px}
+.metric:first-child{padding-left:0}
+.metric:last-child{border-right:none;padding-right:0}
+.metric-value{font-size:22px;font-weight:700;color:#f4f4f5;letter-spacing:-.02em;font-feature-settings:"tnum"}
+.metric-value .unit{font-size:12px;color:var(--c-text-muted);font-weight:400;margin-left:2px}
+.metric-label{font-size:11.5px;color:var(--c-text-muted);letter-spacing:.02em}
+.metric-status{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--c-green)}
+.metric-status::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--c-green)}
 
-/* 分区标题 */
-.section{margin:56px 0 24px}
-.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
-.section-title{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Songti SC","STSong","SimSun","宋体",sans-serif;font-size:22px;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
-.section-title::before{content:'';width:4px;height:24px;border-radius:2px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-3))}
-.section-sub{font-size:13.5px;color:var(--c-text-muted)}
+/* 分区标题 - 极简 */
+.section{margin-bottom:48px}
+.section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid var(--c-border)}
+.section-title{font-size:15px;font-weight:600;color:#f4f4f5;letter-spacing:-.01em}
+.section-sub{font-size:12px;color:var(--c-text-muted)}
 
-/* 功能卡片 */
-.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
-.feat{position:relative;padding:28px;border-radius:var(--radius);background:var(--c-surface);border:1px solid var(--c-border);transition:all .3s;cursor:default;overflow:hidden}
-.feat::after{content:'';position:absolute;top:-50%;right:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(52,211,153,.06),transparent 50%);opacity:0;transition:opacity .3s;pointer-events:none}
-.feat:hover{border-color:var(--c-border-hover);transform:translateY(-4px)}
-.feat:hover::after{opacity:1}
-.feat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px;background:var(--c-surface-2)}
-.feat-icon.teal{background:linear-gradient(135deg,rgba(16,185,129,.2),rgba(110,231,183,.2));box-shadow:0 0 20px rgba(16,185,129,.15)}
-.feat-icon.green{background:linear-gradient(135deg,rgba(16,185,129,.2),rgba(52,211,153,.2));box-shadow:0 0 20px rgba(16,185,129,.15)}
-.feat-icon.blue{background:linear-gradient(135deg,rgba(59,130,246,.2),rgba(96,165,250,.2));box-shadow:0 0 20px rgba(59,130,246,.15)}
-.feat-icon.amber{background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(251,191,36,.2));box-shadow:0 0 20px rgba(245,158,11,.15)}
-.feat-icon.gold{background:linear-gradient(135deg,rgba(212,168,67,.2),rgba(251,191,36,.2));box-shadow:0 0 20px rgba(212,168,67,.15)}
-.feat h3{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Songti SC","STSong","SimSun","宋体",sans-serif;font-size:16.5px;font-weight:700;margin-bottom:8px}
-.feat p{font-size:13.5px;color:var(--c-text-dim);line-height:1.65;margin-bottom:14px}
-.feat-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:12px;font-size:11.5px;font-weight:600}
-.badge-done{background:rgba(16,185,129,.12);color:var(--c-green);border:1px solid rgba(16,185,129,.2)}
+/* 功能列表 - 编号列表式,不是 6 个一样卡片 */
+.feat-list{display:flex;flex-direction:column}
+.feat{display:grid;grid-template-columns:40px 1fr auto;gap:16px;padding:18px 0;border-bottom:1px solid var(--c-border);align-items:start;transition:background .15s}
+.feat:last-child{border-bottom:none}
+.feat:hover{background:var(--c-surface);padding-left:8px;padding-right:8px}
+.feat-num{font-size:11px;color:var(--c-text-muted);font-weight:600;font-feature-settings:"tnum";padding-top:2px;letter-spacing:.05em}
+.feat-body h3{font-size:14px;font-weight:600;color:#f4f4f5;margin-bottom:4px;letter-spacing:-.01em}
+.feat-body p{font-size:13px;color:var(--c-text-dim);line-height:1.6}
+.feat-status{font-size:11px;color:var(--c-green);font-weight:500;padding:2px 8px;border:1px solid var(--c-accent-dim);border-radius:4px;white-space:nowrap}
 
-/* CTA 大卡片 */
-.cta-card{margin-top:48px;padding:48px;border-radius:24px;background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(110,231,183,.1));border:1px solid var(--c-border);text-align:center;position:relative;overflow:hidden}
-.cta-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(52,211,153,.15),transparent 60%);pointer-events:none}
-.cta-card h2{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Songti SC","STSong","SimSun","宋体",sans-serif;font-size:26px;font-weight:700;margin-bottom:10px;position:relative}
-.cta-card p{color:var(--c-text-dim);margin-bottom:24px;position:relative}
-.cta-card .hero-cta{position:relative}
+/* 入口卡片 - 两栏,不对称,不是大 CTA */
+.entries{display:grid;grid-template-columns:1.4fr 1fr;gap:12px;margin-bottom:48px}
+.entry{display:block;padding:20px;border:1px solid var(--c-border);border-radius:8px;text-decoration:none;transition:border-color .15s,background .15s}
+.entry:hover{border-color:var(--c-border-strong);background:var(--c-surface)}
+.entry-title{font-size:14px;font-weight:600;color:#f4f4f5;margin-bottom:4px;display:flex;align-items:center;justify-content:space-between}
+.entry-arrow{color:var(--c-text-muted);font-size:14px}
+.entry:hover .entry-arrow{color:var(--c-accent)}
+.entry-desc{font-size:12.5px;color:var(--c-text-dim);line-height:1.5}
 
-/* 技术栈 */
-.tech{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:48px;padding-top:32px;border-top:1px solid var(--c-border)}
-.tech-item{padding:6px 14px;border-radius:8px;background:var(--c-surface);border:1px solid var(--c-border);font-size:12px;color:var(--c-text-dim);font-weight:500;transition:all .2s}
-.tech-item:hover{color:var(--c-text);border-color:var(--c-border-hover)}
+/* 底部 - 一行字,不要花哨 */
+.footer{padding-top:24px;border-top:1px solid var(--c-border);font-size:11.5px;color:var(--c-text-muted);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.footer-meta{color:var(--c-text-muted)}
 
-/* 底部 */
-.footer{text-align:center;padding:32px 0 0;color:var(--c-text-muted);font-size:12.5px}
-.footer a{color:var(--c-text-dim);text-decoration:none}
-
-/* 响应式 */
-@media(max-width:640px){
+@media(max-width:720px){
   .nav-links{display:none}
-  .hero{padding:40px 0 24px}
-  .stats{grid-template-columns:repeat(2,1fr)}
-  .features{grid-template-columns:1fr}
+  .hero h1{font-size:24px}
+  .metrics{flex-wrap:wrap;gap:12px}
+  .metric{flex:1 1 40%;border-right:none;padding:8px 0}
+  .entries{grid-template-columns:1fr}
+  .feat{grid-template-columns:30px 1fr}
+  .feat-status{grid-column:2}
 }
 </style>
 </head>
@@ -217,8 +192,8 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;opacity:.4;
 <nav class="nav">
   <div class="nav-inner">
     <a class="nav-brand" href="/">
-      <span class="nav-brand-icon">⚖️</span>
-      <span class="nav-brand-text">Legal Agent</span>
+      <span class="nav-brand-mark">L</span>
+      <span>法务 Agent<span class="nav-brand-sub"> / Legal Review</span></span>
     </a>
     <div class="nav-links">
       <a href="/upload">合同审核</a>
@@ -226,117 +201,115 @@ body::after{content:'';position:fixed;inset:0;z-index:-1;opacity:.4;
       <a href="/monitor">监控</a>
       <a href="/api/documents" target="_blank">知识库</a>
     </div>
-    <div class="nav-status"><span class="dot"></span> 运行中</div>
   </div>
 </nav>
 
 <div class="wrap">
-  <!-- Hero -->
+  <!-- Hero 左对齐 -->
   <section class="hero">
-    <div class="hero-tag">D7 · 企业运营智能化 Demo</div>
-    <h1>智能<span class="grad">合同审核</span><br>与法律风险把控</h1>
-    <p>上传合同 PDF / 文本,AI 自动分类识别,79 项风险 Checklist 逐条审核,RAG 检索模板条款,输出修改建议与风险报告,支持 OCR 扫描件。</p>
-    <div class="hero-cta">
-      <a class="btn btn-primary" href="/upload">📄 上传合同</a>
-      <a class="btn btn-ghost" href="/icp">📋 ICP 需求文档</a>
-      <a class="btn btn-ghost" href="/api/documents" target="_blank">📚 知识库</a>
+    <div class="hero-eyebrow">Contract Review System · v1.0</div>
+    <h1>智能合同审核<br>与<span class="accent">法律风险把控</span></h1>
+    <p>上传合同 PDF 或文本,AI 自动识别合同类型,基于 79 项风险清单逐条审核,检索模板条款,输出结构化的修改建议与风险评级。支持扫描件 OCR 与飞书推送。</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="/upload">上传合同 →</a>
+      <a class="btn btn-ghost" href="/icp">ICP 需求文档</a>
+      <a class="btn btn-ghost" href="/api/documents" target="_blank">知识库</a>
     </div>
   </section>
 
-  <!-- 实时统计 -->
-  <div class="stats" id="stats">
-    <div class="stat">
-      <div class="stat-label">合同模板</div>
-      <div class="stat-value">4<span class="unit">类</span></div>
-      <div class="stat-trend" style="color:var(--c-text-muted)">采购/toB/toC/人事</div>
+  <!-- 指标条 -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-value">4<span class="unit">类</span></div>
+      <div class="metric-label">合同模板</div>
     </div>
-    <div class="stat">
-      <div class="stat-label">风险检查点</div>
-      <div class="stat-value">79<span class="unit">项</span></div>
-      <div class="stat-trend" style="color:var(--c-text-muted)">逐条审核</div>
+    <div class="metric">
+      <div class="metric-value">79<span class="unit">项</span></div>
+      <div class="metric-label">风险检查点</div>
     </div>
-    <div class="stat">
-      <div class="stat-label">知识库文档</div>
-      <div class="stat-value"><span id="s-docs">—</span><span class="unit">篇</span></div>
-      <div class="stat-trend" id="s-chunks">加载中...</div>
+    <div class="metric">
+      <div class="metric-value"><span id="s-docs">—</span><span class="unit">篇</span></div>
+      <div class="metric-label" id="s-chunks">知识库文档</div>
     </div>
-    <div class="stat">
-      <div class="stat-label">服务状态</div>
-      <div class="stat-value" style="font-size:18px;color:var(--c-green)">● Online</div>
-      <div class="stat-trend" style="color:var(--c-text-muted)" id="s-uptime">端口 5003</div>
+    <div class="metric">
+      <div class="metric-value metric-status">在线</div>
+      <div class="metric-label" id="s-uptime">服务状态</div>
     </div>
   </div>
 
-  <!-- 功能模块 -->
+  <!-- 功能列表 -->
   <div class="section">
     <div class="section-head">
       <div class="section-title">功能模块</div>
       <div class="section-sub">7 天交付 · 49 个单元测试全绿</div>
     </div>
-    <div class="features">
+    <div class="feat-list">
       <div class="feat">
-        <div class="feat-icon teal">📄</div>
-        <h3>合同分类</h3>
-        <p>上传 PDF / TXT → AI 自动识别合同类型(采购 / toB / toC / 人事),返回类型 + 置信度 + 理由。</p>
-        <span class="feat-badge badge-done">✅ 已上线</span>
+        <div class="feat-num">01</div>
+        <div class="feat-body">
+          <h3>合同分类</h3>
+          <p>AI 自动识别合同类型(采购 / toB SaaS / toC / 人事),返回类型、置信度与分类理由。</p>
+        </div>
+        <div class="feat-status">已上线</div>
       </div>
       <div class="feat">
-        <div class="feat-icon amber">🔍</div>
-        <h3>合同审核</h3>
-        <p>79 项风险 Checklist 逐条审核,输出 pass / warn / fail 三级状态 + 修改建议 + 整体风险评级。</p>
-        <span class="feat-badge badge-done">✅ 已上线</span>
+        <div class="feat-num">02</div>
+        <div class="feat-body">
+          <h3>风险审核</h3>
+          <p>79 项风险 Checklist 逐条审核,输出 pass / warn / fail 三级状态、修改建议与整体风险评级。</p>
+        </div>
+        <div class="feat-status">已上线</div>
       </div>
       <div class="feat">
-        <div class="feat-icon green">📚</div>
-        <h3>RAG 知识库</h3>
-        <p>4 类合同模板入库,bge-m3 向量检索,审核时自动召回参考条款,支持相似度排序与引用回显。</p>
-        <span class="feat-badge badge-done">✅ 已上线</span>
+        <div class="feat-num">03</div>
+        <div class="feat-body">
+          <h3>RAG 知识库</h3>
+          <p>4 类合同模板入库,bge-m3 向量检索,审核时自动召回参考条款,按相似度排序并回显引用。</p>
+        </div>
+        <div class="feat-status">已上线</div>
       </div>
       <div class="feat">
-        <div class="feat-icon blue">🖨️</div>
-        <h3>OCR 扫描件</h3>
-        <p>pypdf 文本提取 + tesseract OCR 降级方案,扫描 PDF 自动识别文字(200 DPI, chi_sim + eng)。</p>
-        <span class="feat-badge badge-done">✅ 已上线</span>
+        <div class="feat-num">04</div>
+        <div class="feat-body">
+          <h3>OCR 扫描件</h3>
+          <p>pypdf 文本提取 + tesseract OCR 降级,扫描 PDF 自动识别(200 DPI,chi_sim + eng)。</p>
+        </div>
+        <div class="feat-status">已上线</div>
       </div>
       <div class="feat">
-        <div class="feat-icon gold">📝</div>
-        <h3>ICP 需求文档</h3>
-        <p>AI 生成 ICP 备案外包需求文档(9 章结构),填表即生成,支持一键推送飞书给代理公司。</p>
-        <span class="feat-badge badge-done">✅ 已上线</span>
+        <div class="feat-num">05</div>
+        <div class="feat-body">
+          <h3>ICP 需求文档</h3>
+          <p>AI 生成 ICP 备案外包需求文档(9 章结构),填表即生成,一键推送飞书给代理公司。</p>
+        </div>
+        <div class="feat-status">已上线</div>
       </div>
       <div class="feat">
-        <div class="feat-icon teal">📤</div>
-        <h3>飞书输出</h3>
-        <p>审核结果 / ICP 文档一键推送飞书群,支持 Bot 交互式查询(审核 / 模板 / 帮助)。</p>
-        <span class="feat-badge badge-done">✅ 已上线</span>
+        <div class="feat-num">06</div>
+        <div class="feat-body">
+          <h3>飞书输出</h3>
+          <p>审核结果与 ICP 文档一键推送飞书群,支持 Bot 交互式查询(审核 / 模板 / 帮助)。</p>
+        </div>
+        <div class="feat-status">已上线</div>
       </div>
     </div>
   </div>
 
-  <!-- CTA -->
-  <div class="cta-card">
-    <h2>开始审核</h2>
-    <p>上传你的第一份合同,体验 AI 分类 + 风险审核 + 模板引用全流程</p>
-    <div class="hero-cta">
-      <a class="btn btn-primary" href="/upload">📄 立即上传</a>
-      <a class="btn btn-ghost" href="/icp">📋 生成 ICP 文档</a>
-    </div>
-  </div>
-
-  <!-- 技术栈 -->
-  <div class="tech">
-    <span class="tech-item">Python Flask</span>
-    <span class="tech-item">CherryIN API</span>
-    <span class="tech-item">DeepSeek V4 Pro</span>
-    <span class="tech-item">BGE-M3 Embedding</span>
-    <span class="tech-item">SQLite + 向量检索</span>
-    <span class="tech-item">Tesseract OCR</span>
-    <span class="tech-item">飞书 OpenAPI</span>
+  <!-- 入口 -->
+  <div class="entries">
+    <a class="entry" href="/upload">
+      <div class="entry-title">上传合同开始审核 <span class="entry-arrow">→</span></div>
+      <div class="entry-desc">PDF / TXT,支持扫描件。AI 分类 + 79 项风险审核 + 模板引用,约 1-3 分钟出结果。</div>
+    </a>
+    <a class="entry" href="/icp">
+      <div class="entry-title">生成 ICP 需求文档 <span class="entry-arrow">→</span></div>
+      <div class="entry-desc">填表即生成 9 章结构化文档。</div>
+    </a>
   </div>
 
   <div class="footer">
-    企业运营智能化 Demo · 法务 Agent v1.0 · 服务器 124.222.181.129:5003<br>
-    基于 2026-07-09 线下拜访会议需求 · 7 天敏捷交付
+    <span>法务 Agent · 企业运营智能化 Demo</span>
+    <span class="footer-meta">基于 2026-07-09 线下拜访会议需求 · 7 天敏捷交付</span>
   </div>
 </div>
 
@@ -355,7 +328,7 @@ async function loadStats(){
     if(statsResp && statsResp.uptime_human){
       document.getElementById('s-uptime').textContent = '运行 ' + statsResp.uptime_human;
     }
-  }catch(e){console.log('stats load failed',e)}
+  }catch(e){}
 }
 loadStats();
 </script>
@@ -370,75 +343,72 @@ ICP_HTML = """<!DOCTYPE html>
 <title>ICP 备案外包需求文档 · 法务 Agent</title>
 <style>
 :root{
-  --c-primary:#10b981;--c-primary-2:#34d399;--c-primary-3:#6ee7b7;
-  --c-bg:#0a1410;--c-bg-2:#0f1a14;--c-surface:rgba(255,255,255,.04);--c-surface-2:rgba(255,255,255,.08);
-  --c-text:#e4e4e7;--c-text-dim:#a1a1aa;--c-text-muted:#71717a;
-  --c-border:rgba(255,255,255,.08);--c-border-hover:rgba(52,211,153,.4);
-  --c-green:#10b981;--c-amber:#f59e0b;--c-red:#ef4444;--c-blue:#3b82f6;
-  --radius:16px;--radius-sm:10px;
-  --shadow:0 8px 32px rgba(0,0,0,.3);--shadow-glow:0 0 40px rgba(52,211,153,.15);
+  --c-bg:#0a0f0d;--c-surface:#11171420;--c-surface-2:#1a221d;
+  --c-text:#d4d4d8;--c-text-dim:#8a8a8f;--c-text-muted:#5c5c63;
+  --c-border:#ffffff14;--c-border-strong:#ffffff26;
+  --c-accent:#10b981;--c-accent-dim:#10b98130;
+  --c-green:#10b981;--c-amber:#f59e0b;--c-red:#ef4444;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{
-  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Segoe UI","Kaiti SC","STKaiti","KaiTi","楷体",sans-serif;
-  background:var(--c-bg);color:var(--c-text);line-height:1.6;overflow-x:hidden;min-height:100vh;
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--c-bg);color:var(--c-text);line-height:1.6;font-size:14px;min-height:100vh;
+  -webkit-font-smoothing:antialiased;
 }
-body::before{content:'';position:fixed;inset:0;z-index:-2;background:
-  radial-gradient(ellipse 80% 50% at 20% 0%,rgba(16,185,129,.15),transparent),
-  radial-gradient(ellipse 60% 50% at 80% 30%,rgba(110,231,183,.12),transparent),
-  radial-gradient(ellipse 50% 50% at 50% 100%,rgba(52,211,153,.1),transparent),
-  var(--c-bg)}
-.nav{position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);background:rgba(10,20,16,.7);border-bottom:1px solid var(--c-border)}
-.nav-inner{max-width:1100px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
-.nav-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;color:var(--c-text);text-decoration:none}
-.nav-brand-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-3));display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(16,185,129,.4)}
-.nav-brand-text{background:linear-gradient(135deg,#fff,#6ee7b7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.nav-links{display:flex;gap:4px;align-items:center}
-.nav-links a{padding:8px 14px;border-radius:8px;font-size:13.5px;font-weight:500;color:var(--c-text-dim);text-decoration:none;transition:all .2s}
+.nav{border-bottom:1px solid var(--c-border);background:var(--c-bg)}
+.nav-inner{max-width:1040px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--c-text);text-decoration:none;letter-spacing:-.01em}
+.nav-brand-mark{width:22px;height:22px;border-radius:5px;background:var(--c-accent);display:flex;align-items:center;justify-content:center;color:#0a0f0d;font-size:12px;font-weight:800}
+.nav-brand-sub{color:var(--c-text-muted);font-weight:400;font-size:12px;margin-left:1px}
+.nav-links{display:flex;gap:2px;align-items:center}
+.nav-links a{padding:6px 12px;border-radius:6px;font-size:13px;font-weight:500;color:var(--c-text-dim);text-decoration:none;transition:color .15s,background .15s}
 .nav-links a:hover{color:var(--c-text);background:var(--c-surface)}
-.nav-links a.active{color:var(--c-text);background:var(--c-surface-2)}
-.wrap{max-width:1100px;margin:0 auto;padding:40px 24px 80px}
-.card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);padding:24px;margin-bottom:20px;backdrop-filter:blur(10px);position:relative;overflow:hidden}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(52,211,153,.4),transparent)}
-.card h2{font-size:18px;margin-bottom:16px;color:var(--c-text);font-weight:700}
-.muted{color:var(--c-text-muted);font-size:13px}
+.nav-links a.active{color:var(--c-text);background:var(--c-surface)}
+.wrap{max-width:1040px;margin:0 auto;padding:32px 24px 64px}
+.card{background:transparent;border:1px solid var(--c-border);border-radius:8px;padding:24px;margin-bottom:16px}
+.card h2{font-size:14px;font-weight:600;color:#f4f4f5;margin-bottom:4px;letter-spacing:-.01em}
+.muted{color:var(--c-text-muted);font-size:12.5px}
 
+.page-head{margin-bottom:24px}
+.page-head h1{font-size:22px;font-weight:700;color:#f4f4f5;letter-spacing:-.02em;margin-bottom:4px}
+.page-head p{font-size:13px;color:var(--c-text-dim)}
 .form-group{margin-bottom:14px}
-.form-group label{display:block;font-size:13px;font-weight:600;color:var(--c-text-dim);margin-bottom:6px}
-.form-group label .req{color:var(--c-red)}
-.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 14px;border:1px solid var(--c-border);border-radius:10px;font-size:14px;font-family:inherit;background:var(--c-surface-2);color:var(--c-text);outline:none;transition:border-color .2s}
-.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--c-border-hover)}
-.form-group textarea{min-height:70px;resize:vertical}
+.form-group label{display:block;font-size:12px;font-weight:500;color:var(--c-text-dim);margin-bottom:5px;letter-spacing:.01em}
+.form-group label .req{color:var(--c-red);margin-left:2px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:8px 12px;border:1px solid var(--c-border-strong);border-radius:6px;font-size:13px;font-family:inherit;background:var(--c-surface-2);color:var(--c-text);outline:none;transition:border-color .15s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--c-accent)}
+.form-group input::placeholder,.form-group textarea::placeholder{color:var(--c-text-muted)}
+.form-group textarea{min-height:64px;resize:vertical;font-family:inherit}
 .form-row{display:flex;gap:12px}
 .form-row .form-group{flex:1}
-.checkbox-group{display:flex;flex-wrap:wrap;gap:8px}
-.checkbox-item{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--c-surface-2);border:1px solid var(--c-border);border-radius:10px;font-size:13px;cursor:pointer;color:var(--c-text);transition:all .2s}
-.checkbox-item:hover{border-color:var(--c-border-hover)}
-.checkbox-item input{width:auto;accent-color:var(--c-primary-2)}
-.btn{padding:11px 26px;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .25s}
-.btn-primary{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-3));color:#fff;box-shadow:0 4px 16px rgba(16,185,129,.3)}
-.btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 24px rgba(16,185,129,.5)}
-.btn-feishu{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-3));color:#fff;box-shadow:0 4px 16px rgba(16,185,129,.3)}
-.btn-feishu:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 24px rgba(16,185,129,.5)}
-.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
-.result{margin-top:16px;padding:20px;background:var(--c-surface-2);border-radius:12px;border:1px solid var(--c-border);display:none}
-.result h3{margin-bottom:12px;color:var(--c-text);font-size:15px;font-weight:700}
-.result pre{white-space:pre-wrap;word-wrap:break-word;font-size:13.5px;line-height:1.8;max-height:600px;overflow-y:auto;color:var(--c-text);font-family:inherit}
-.loading{text-align:center;padding:40px;color:var(--c-text-muted);display:none}
-.loading .spin{display:inline-block;width:32px;height:32px;border:3px solid var(--c-surface-2);border-top:3px solid var(--c-primary-2);border-radius:50%;animation:spin 1s linear infinite}
+.checkbox-group{display:flex;flex-wrap:wrap;gap:6px}
+.checkbox-item{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;background:var(--c-surface);border:1px solid var(--c-border-strong);border-radius:5px;font-size:12px;cursor:pointer;color:var(--c-text-dim);transition:all .15s}
+.checkbox-item:hover{border-color:#ffffff40;color:var(--c-text)}
+.checkbox-item input{width:auto;accent-color:var(--c-accent)}
+.btn{padding:8px 18px;border:1px solid transparent;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:background .15s,border-color .15s;line-height:1.4}
+.btn-primary{background:var(--c-accent);color:#0a0f0d;font-weight:600}
+.btn-primary:hover{background:#0f9a72}
+.btn-feishu{background:transparent;color:var(--c-text);border:1px solid var(--c-border-strong)}
+.btn-feishu:hover:not(:disabled){border-color:var(--c-accent);color:var(--c-accent)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.result{margin-top:16px;padding:18px;background:var(--c-surface-2);border:1px solid var(--c-border);border-radius:6px;display:none}
+.result h3{margin-bottom:10px;color:var(--c-text);font-size:13px;font-weight:600}
+.result pre{white-space:pre-wrap;word-wrap:break-word;font-size:12.5px;line-height:1.8;max-height:560px;overflow-y:auto;color:var(--c-text);font-family:"SF Mono",Menlo,Consolas,monospace}
+.loading{text-align:center;padding:36px;color:var(--c-text-muted);display:none;font-size:13px}
+.loading .spin{display:inline-block;width:20px;height:20px;border:2px solid var(--c-border-strong);border-top:2px solid var(--c-accent);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:8px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.feishu-row{margin-top:16px;padding-top:16px;border-top:1px solid var(--c-border);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.feishu-row select{padding:10px 14px;border:1px solid var(--c-border);border-radius:10px;font-size:14px;min-width:220px;background:var(--c-surface-2);color:var(--c-text);font-family:inherit;outline:none}
-.feishu-row select:focus{border-color:var(--c-border-hover)}
-.result-msg{margin-top:8px;padding:10px;border-radius:8px;font-size:13px;display:none}
-.result-msg.success{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--c-green);display:block}
-.result-msg.error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--c-red);display:block}
+.feishu-row{margin-top:14px;padding-top:14px;border-top:1px solid var(--c-border);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.feishu-row select{padding:7px 11px;border:1px solid var(--c-border-strong);border-radius:5px;font-size:12.5px;min-width:200px;background:var(--c-surface-2);color:var(--c-text);font-family:inherit;outline:none}
+.feishu-row select:focus{border-color:var(--c-accent)}
+.result-msg{margin-top:8px;padding:7px 11px;border-radius:5px;font-size:12px;display:none}
+.result-msg.success{background:var(--c-accent-dim);color:var(--c-green);border:1px solid var(--c-accent-dim);display:block}
+.result-msg.error{background:#ef44441a;color:var(--c-red);border:1px solid #ef444433;display:block}
 </style>
 </head>
 <body>
 <div class="nav"><div class="nav-inner">
-    <a class="nav-brand" href="/"><span class="nav-brand-icon">⚖️</span><span class="nav-brand-text">法务 Agent</span></a>
+    <a class="nav-brand" href="/"><span class="nav-brand-mark">L</span><span>法务 Agent<span class="nav-brand-sub"> / Legal Review</span></span></a>
     <div class="nav-links">
         <a href="/">首页</a>
         <a href="/upload">合同审核</a>
@@ -447,13 +417,15 @@ body::before{content:'';position:fixed;inset:0;z-index:-2;background:
     </div>
 </div></div>
 <div class="wrap">
+    <div class="page-head">
+        <h1>ICP 备案外包需求文档</h1>
+        <p>填写企业信息,AI 自动生成结构化需求文档(9 章)</p>
+    </div>
     <div class="card">
-        <h2>📋 ICP 备案外包需求文档生成器</h2>
-        <p class="muted" style="margin-bottom:16px">填写企业信息,AI 自动生成 ICP 备案外包需求文档</p>
         <form id="icp-form" onsubmit="return false">
             <div class="form-row">
                 <div class="form-group">
-                    <label>企业名称 <span class="req">*</span></label>
+                    <label>企业名称<span class="req">*</span></label>
                     <input type="text" id="company_name" placeholder="北京科技有限公司">
                 </div>
                 <div class="form-group">
@@ -473,11 +445,11 @@ body::before{content:'';position:fixed;inset:0;z-index:-2;background:
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>网站名称 <span class="req">*</span></label>
+                    <label>网站名称<span class="req">*</span></label>
                     <input type="text" id="site_name" placeholder="企业官网">
                 </div>
                 <div class="form-group">
-                    <label>域名 <span class="req">*</span></label>
+                    <label>域名<span class="req">*</span></label>
                     <input type="text" id="domain" placeholder="example.com">
                 </div>
             </div>
@@ -518,15 +490,15 @@ body::before{content:'';position:fixed;inset:0;z-index:-2;background:
                 <label>特殊要求</label>
                 <textarea id="special_requirements" placeholder="如:需要 CDN 加速、多语言支持等"></textarea>
             </div>
-            <button class="btn btn-primary" id="gen-btn" onclick="generateDoc()">🤖 生成需求文档</button>
+            <button class="btn btn-primary" id="gen-btn" onclick="generateDoc()">生成需求文档</button>
         </form>
     </div>
     <div class="loading" id="loading">
         <div class="spin"></div>
-        <p style="margin-top:10px">AI 正在生成需求文档,请稍候 10-30 秒...</p>
+        <div>AI 正在生成需求文档,请稍候 10-30 秒...</div>
     </div>
     <div class="result" id="result">
-        <h3>📄 ICP 备案外包需求文档</h3>
+        <h3>需求文档</h3>
         <pre id="doc-content"></pre>
         <div class="feishu-row">
             <select id="chat-select"><option value="">加载群聊中...</option></select>
@@ -599,9 +571,9 @@ async function sendFeishu(){
     try{
         const r=await fetch('/api/icp/feishu',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,form_data:data})});
         const d=await r.json();
-        if(d.ok){result.className='result-msg success';result.textContent='✅ 已发送到飞书群';}
-        else{result.className='result-msg error';result.textContent='❌ '+d.error;}
-    }catch(e){result.className='result-msg error';result.textContent='❌ 网络错误';}
+        if(d.ok){result.className='result-msg success';result.textContent='✓ 已发送到飞书群';}
+        else{result.className='result-msg error';result.textContent='✗ '+d.error;}
+    }catch(e){result.className='result-msg error';result.textContent='✗ 网络错误';}
     btn.disabled=false;btn.textContent='发送到飞书';
 }
 </script>
@@ -616,94 +588,91 @@ UPLOAD_HTML = """<!DOCTYPE html>
 <title>合同审核 · 法务 Agent</title>
 <style>
 :root{
-  --c-primary:#10b981;--c-primary-2:#34d399;--c-primary-3:#6ee7b7;
-  --c-bg:#0a1410;--c-bg-2:#0f1a14;--c-surface:rgba(255,255,255,.04);--c-surface-2:rgba(255,255,255,.08);
-  --c-text:#e4e4e7;--c-text-dim:#a1a1aa;--c-text-muted:#71717a;
-  --c-border:rgba(255,255,255,.08);--c-border-hover:rgba(52,211,153,.4);
-  --c-green:#10b981;--c-amber:#f59e0b;--c-red:#ef4444;--c-blue:#3b82f6;
-  --radius:16px;--radius-sm:10px;
-  --shadow:0 8px 32px rgba(0,0,0,.3);--shadow-glow:0 0 40px rgba(52,211,153,.15);
+  --c-bg:#0a0f0d;--c-surface:#11171420;--c-surface-2:#1a221d;
+  --c-text:#d4d4d8;--c-text-dim:#8a8a8f;--c-text-muted:#5c5c63;
+  --c-border:#ffffff14;--c-border-strong:#ffffff26;
+  --c-accent:#10b981;--c-accent-dim:#10b98130;
+  --c-green:#10b981;--c-amber:#f59e0b;--c-red:#ef4444;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{
-  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Segoe UI","Kaiti SC","STKaiti","KaiTi","楷体",sans-serif;
-  background:var(--c-bg);color:var(--c-text);line-height:1.6;overflow-x:hidden;min-height:100vh;
+  font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--c-bg);color:var(--c-text);line-height:1.6;font-size:14px;min-height:100vh;
+  -webkit-font-smoothing:antialiased;
 }
-body::before{content:'';position:fixed;inset:0;z-index:-2;background:
-  radial-gradient(ellipse 80% 50% at 20% 0%,rgba(16,185,129,.15),transparent),
-  radial-gradient(ellipse 60% 50% at 80% 30%,rgba(110,231,183,.12),transparent),
-  radial-gradient(ellipse 50% 50% at 50% 100%,rgba(52,211,153,.1),transparent),
-  var(--c-bg)}
-.nav{position:sticky;top:0;z-index:100;backdrop-filter:blur(20px);background:rgba(10,20,16,.7);border-bottom:1px solid var(--c-border)}
-.nav-inner{max-width:1100px;margin:0 auto;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
-.nav-brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;color:var(--c-text);text-decoration:none}
-.nav-brand-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-3));display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 12px rgba(16,185,129,.4)}
-.nav-brand-text{background:linear-gradient(135deg,#fff,#6ee7b7);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.nav-links{display:flex;gap:4px;align-items:center}
-.nav-links a{padding:8px 14px;border-radius:8px;font-size:13.5px;font-weight:500;color:var(--c-text-dim);text-decoration:none;transition:all .2s}
+.nav{border-bottom:1px solid var(--c-border);background:var(--c-bg)}
+.nav-inner{max-width:1040px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:600;color:var(--c-text);text-decoration:none;letter-spacing:-.01em}
+.nav-brand-mark{width:22px;height:22px;border-radius:5px;background:var(--c-accent);display:flex;align-items:center;justify-content:center;color:#0a0f0d;font-size:12px;font-weight:800}
+.nav-brand-sub{color:var(--c-text-muted);font-weight:400;font-size:12px;margin-left:1px}
+.nav-links{display:flex;gap:2px;align-items:center}
+.nav-links a{padding:6px 12px;border-radius:6px;font-size:13px;font-weight:500;color:var(--c-text-dim);text-decoration:none;transition:color .15s,background .15s}
 .nav-links a:hover{color:var(--c-text);background:var(--c-surface)}
-.nav-links a.active{color:var(--c-text);background:var(--c-surface-2)}
-.wrap{max-width:1100px;margin:0 auto;padding:40px 24px 80px}
-.card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius);padding:24px;margin-bottom:20px;backdrop-filter:blur(10px);position:relative;overflow:hidden}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(52,211,153,.4),transparent)}
-.card h2{font-size:18px;margin-bottom:16px;color:var(--c-text);font-weight:700}
-.muted{color:var(--c-text-muted);font-size:13px}
+.nav-links a.active{color:var(--c-text);background:var(--c-surface)}
+.wrap{max-width:1040px;margin:0 auto;padding:32px 24px 64px}
+.card{background:transparent;border:1px solid var(--c-border);border-radius:8px;padding:24px;margin-bottom:16px}
+.card h2{font-size:14px;font-weight:600;color:#f4f4f5;margin-bottom:4px;letter-spacing:-.01em}
+.muted{color:var(--c-text-muted);font-size:12.5px}
 
-.drop-zone{border:2px dashed var(--c-border);border-radius:var(--radius);padding:48px;text-align:center;color:var(--c-text-muted);cursor:pointer;transition:all .3s;background:var(--c-surface-2)}
-.drop-zone:hover{border-color:var(--c-border-hover);background:var(--c-surface);transform:scale(1.01)}
-.drop-zone.dragover{border-color:var(--c-primary-2);background:var(--c-surface)}
-.drop-zone.has-file{border-color:var(--c-green);background:rgba(16,185,129,.08);color:var(--c-green)}
-.drop-icon{font-size:48px;margin-bottom:8px}
-.drop-text{font-size:16px;font-weight:600;margin-bottom:4px;color:var(--c-text)}
-.drop-hint{font-size:13px;opacity:.7}
-.info-box{background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(110,231,183,.05));border-left:3px solid var(--c-primary-2);border-radius:var(--radius-sm);padding:14px 18px;margin-top:16px;font-size:13px;color:var(--c-text-dim);line-height:1.7}
-.info-box b{color:var(--c-text)}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 36px;background:linear-gradient(135deg,var(--c-primary),var(--c-primary-3));color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;transition:all .25s;box-shadow:0 4px 16px rgba(16,185,129,.3);font-family:inherit}
-.btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 24px rgba(16,185,129,.5)}
-.btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.page-head{margin-bottom:24px}
+.page-head h1{font-size:22px;font-weight:700;color:#f4f4f5;letter-spacing:-.02em;margin-bottom:4px}
+.page-head p{font-size:13px;color:var(--c-text-dim)}
+.drop-zone{border:1px dashed var(--c-border-strong);border-radius:6px;padding:36px;text-align:center;color:var(--c-text-muted);cursor:pointer;transition:border-color .15s,background .15s;background:var(--c-surface)}
+.drop-zone:hover{border-color:var(--c-accent);background:var(--c-surface-2)}
+.drop-zone.dragover{border-color:var(--c-accent);background:var(--c-surface-2)}
+.drop-zone.has-file{border-color:var(--c-green);background:var(--c-accent-dim);color:var(--c-green)}
+.drop-icon{font-size:28px;margin-bottom:6px;opacity:.6}
+.drop-text{font-size:13px;font-weight:500;margin-bottom:2px;color:var(--c-text)}
+.drop-hint{font-size:11.5px;color:var(--c-text-muted)}
+.info-box{background:var(--c-surface-2);border-left:2px solid var(--c-accent);border-radius:0 4px 4px 0;padding:10px 14px;margin-top:14px;font-size:12px;color:var(--c-text-dim);line-height:1.7}
+.info-box b{color:var(--c-text);font-weight:600}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 24px;background:var(--c-accent);color:#0a0f0d;border:1px solid var(--c-accent);border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s;font-family:inherit}
+.btn:hover:not(:disabled){background:#0f9a72}
+.btn:disabled{opacity:.4;cursor:not-allowed}
 .result-box{margin-top:16px}
-.result-summary{background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(110,231,183,.05));border:1px solid rgba(52,211,153,.2);border-radius:var(--radius-sm);padding:18px;margin-bottom:12px}
-.risk-badge{display:inline-block;padding:4px 14px;border-radius:16px;font-size:13px;font-weight:700}
-.risk-high{background:rgba(239,68,68,.15);color:var(--c-red);border:1px solid rgba(239,68,68,.3)}
-.risk-medium{background:rgba(245,158,11,.15);color:var(--c-amber);border:1px solid rgba(245,158,11,.3)}
-.risk-low{background:rgba(16,185,129,.15);color:var(--c-green);border:1px solid rgba(16,185,129,.3)}
-.stat-pills{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
-.stat-pill{padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600}
-.pill-pass{background:rgba(16,185,129,.15);color:var(--c-green);border:1px solid rgba(16,185,129,.3)}
-.pill-warn{background:rgba(245,158,11,.15);color:var(--c-amber);border:1px solid rgba(245,158,11,.3)}
-.pill-fail{background:rgba(239,68,68,.15);color:var(--c-red);border:1px solid rgba(239,68,68,.3)}
-.pill-total{background:rgba(16,185,129,.15);color:var(--c-primary-2);border:1px solid rgba(16,185,129,.3)}
-.result-table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:12px}
-.result-table th{background:var(--c-surface-2);color:var(--c-text-dim);padding:12px;text-align:left;font-weight:600;border-bottom:1px solid var(--c-border);text-transform:uppercase;letter-spacing:.3px;font-size:12.5px}
-.result-table th:first-child{border-radius:8px 0 0 0}
-.result-table th:last-child{border-radius:0 8px 0 0}
-.result-table td{padding:12px;border-bottom:1px solid var(--c-border);vertical-align:top;color:var(--c-text)}
+.result-summary{background:var(--c-surface-2);border:1px solid var(--c-border);border-radius:6px;padding:14px 16px;margin-bottom:10px}
+.result-summary-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.result-summary-top b{font-weight:600;color:var(--c-text)}
+.result-summary-top .conf{color:var(--c-text-muted);font-size:11px;margin-left:4px}
+.risk-badge{display:inline-block;padding:2px 10px;border-radius:4px;font-size:11.5px;font-weight:600;border:1px solid}
+.risk-high{background:#ef44441a;color:var(--c-red);border-color:#ef444433}
+.risk-medium{background:#f59e0b1a;color:var(--c-amber);border-color:#f59e0b33}
+.risk-low{background:var(--c-accent-dim);color:var(--c-green);border-color:var(--c-accent-dim)}
+.stat-pills{display:flex;gap:6px;flex-wrap:wrap}
+.stat-pill{padding:2px 9px;border-radius:4px;font-size:11px;font-weight:500;border:1px solid}
+.pill-pass{background:var(--c-accent-dim);color:var(--c-green);border-color:var(--c-accent-dim)}
+.pill-warn{background:#f59e0b1a;color:var(--c-amber);border-color:#f59e0b33}
+.pill-fail{background:#ef44441a;color:var(--c-red);border-color:#ef444433}
+.pill-total{background:var(--c-surface);color:var(--c-text-dim);border-color:var(--c-border-strong)}
+.result-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+.result-table th{background:var(--c-surface-2);color:var(--c-text-dim);padding:8px 10px;text-align:left;font-weight:500;border-bottom:1px solid var(--c-border);font-size:11.5px;letter-spacing:.02em}
+.result-table td{padding:9px 10px;border-bottom:1px solid var(--c-border);color:var(--c-text);vertical-align:top}
 .result-table tr:hover td{background:var(--c-surface)}
-.status-icon{font-size:18px}
-.suggestion{color:var(--c-text-muted);font-size:12px;margin-top:4px}
-.suggestion b{color:var(--c-text-dim)}
-.loading{display:inline-block;width:20px;height:20px;border:3px solid var(--c-surface-2);border-top-color:var(--c-primary-2);border-radius:50%;animation:spin 1s linear infinite;margin-right:8px;vertical-align:middle}
+.status-icon{font-size:13px;font-weight:600}
+.suggestion{color:var(--c-text-muted);font-size:11.5px;margin-top:3px}
+.suggestion b{color:var(--c-text-dim);font-weight:500}
+.loading{display:inline-block;width:16px;height:16px;border:2px solid var(--c-border-strong);border-top-color:var(--c-accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:6px;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
-.feishu-section{margin-top:20px;padding:20px;background:var(--c-surface-2);border-radius:var(--radius-sm);border:1px solid var(--c-border)}
-.feishu-section h3{font-size:15px;margin-bottom:10px;color:var(--c-text);font-weight:700}
-.feishu-section .chat-select{padding:10px 14px;border:1px solid var(--c-border);border-radius:10px;font-size:14px;margin-right:8px;min-width:220px;background:var(--c-surface);color:var(--c-text);font-family:inherit;outline:none}
-.feishu-section .chat-select:focus{border-color:var(--c-border-hover)}
-.btn-feishu-inline{background:linear-gradient(135deg,var(--c-primary),var(--c-primary-3));color:#fff;border:none;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 4px 16px rgba(16,185,129,.3);transition:all .25s}
-.btn-feishu-inline:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 24px rgba(16,185,129,.5)}
-.btn-feishu-inline:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
-.result-msg{margin-top:10px;padding:10px;border-radius:8px;font-size:13px;display:none}
-.result-msg.success{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:var(--c-green);display:block}
-.result-msg.error{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:var(--c-red);display:block}
-.error-box{color:var(--c-red);padding:16px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px}
-.progress-box{text-align:center;padding:24px}
-.progress-msg{margin-top:12px;color:var(--c-text-dim)}
-.progress-sub{margin-top:8px;color:var(--c-text-muted);font-size:12px}
+.feishu-section{margin-top:14px;padding:14px 16px;background:var(--c-surface-2);border:1px solid var(--c-border);border-radius:6px}
+.feishu-section h3{font-size:13px;font-weight:600;margin-bottom:6px;color:var(--c-text)}
+.feishu-section .chat-select{padding:7px 11px;border:1px solid var(--c-border-strong);border-radius:5px;font-size:12.5px;margin-right:6px;min-width:200px;background:var(--c-surface);color:var(--c-text);font-family:inherit;outline:none}
+.feishu-section .chat-select:focus{border-color:var(--c-accent)}
+.btn-feishu-inline{background:transparent;color:var(--c-text);border:1px solid var(--c-border-strong);padding:7px 16px;border-radius:5px;font-size:12.5px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-feishu-inline:hover:not(:disabled){border-color:var(--c-accent);color:var(--c-accent)}
+.btn-feishu-inline:disabled{opacity:.4;cursor:not-allowed}
+.result-msg{margin-top:8px;padding:7px 11px;border-radius:5px;font-size:12px;display:none}
+.result-msg.success{background:var(--c-accent-dim);color:var(--c-green);border:1px solid var(--c-accent-dim);display:block}
+.result-msg.error{background:#ef44441a;color:var(--c-red);border:1px solid #ef444433;display:block}
+.error-box{color:var(--c-red);padding:12px 14px;background:#ef44441a;border:1px solid #ef444433;border-radius:5px;font-size:12.5px}
+.progress-box{text-align:center;padding:20px;font-size:13px;color:var(--c-text-dim)}
+.progress-msg{margin-top:8px}
+.progress-sub{margin-top:4px;color:var(--c-text-muted);font-size:11px}
 </style>
 </head>
 <body>
 <div class="nav"><div class="nav-inner">
-    <a class="nav-brand" href="/"><span class="nav-brand-icon">⚖️</span><span class="nav-brand-text">法务 Agent</span></a>
+    <a class="nav-brand" href="/"><span class="nav-brand-mark">L</span><span>法务 Agent<span class="nav-brand-sub"> / Legal Review</span></span></a>
     <div class="nav-links">
         <a href="/">首页</a>
         <a href="/upload" class="active">合同审核</a>
@@ -712,31 +681,33 @@ body::before{content:'';position:fixed;inset:0;z-index:-2;background:
     </div>
 </div></div>
 <div class="wrap">
-  <div class="card">
-    <h2>📤 上传合同</h2>
-    <p class="muted" style="margin-bottom:16px">上传合同 PDF/TXT → AI 分类 → 风险 Checklist 审核 → 结构化结论</p>
-    <div class="drop-zone" id="drop">
-      <div class="drop-icon">📁</div>
-      <div class="drop-text">点击或拖拽文件到此处</div>
-      <div class="drop-hint">支持 PDF 和 TXT 格式</div>
+    <div class="page-head">
+        <h1>合同审核</h1>
+        <p>上传合同 PDF / TXT → AI 分类 → 79 项风险 Checklist 审核 → 结构化结论</p>
     </div>
-    <input type="file" id="file" accept=".pdf,.txt" style="display:none">
-    <div class="info-box">
-      <b>📋 支持 4 类合同:</b> 采购合同 / 销售合同-toB(SaaS) / 销售合同-toC / 人事合同<br>
-      <b>🔍 审核流程:</b> 分类 → 选 Checklist → RAG 检索模板 → 逐条审核 → 风险等级
+    <div class="card">
+        <div class="drop-zone" id="drop">
+            <div class="drop-icon">⬆</div>
+            <div class="drop-text">点击或拖拽文件到此处</div>
+            <div class="drop-hint">支持 PDF 和 TXT 格式</div>
+        </div>
+        <input type="file" id="file" accept=".pdf,.txt" style="display:none">
+        <div class="info-box">
+            <b>支持 4 类合同:</b> 采购 / 销售-toB(SaaS) / 销售-toC / 人事<br>
+            <b>审核流程:</b> 分类 → 选 Checklist → RAG 检索模板 → 逐条审核 → 风险等级
+        </div>
+        <div style="text-align:center;margin-top:16px">
+            <button class="btn" id="submit" disabled>开始审核</button>
+        </div>
+        <div class="result-box" id="result"></div>
+        <div class="feishu-section" id="feishu-section" style="display:none">
+            <h3>发送审核报告到飞书</h3>
+            <p class="muted" style="margin-bottom:8px">选择群聊后,把审核结果发到飞书群</p>
+            <select id="chat-select" class="chat-select"><option value="">加载群聊中...</option></select>
+            <button id="send-feishu" class="btn-feishu-inline" disabled>发送到飞书</button>
+            <div id="feishu-result" class="result-msg"></div>
+        </div>
     </div>
-    <div style="text-align:center;margin-top:20px">
-      <button class="btn" id="submit" disabled>🔍 分类 + 审核</button>
-    </div>
-    <div class="result-box" id="result"></div>
-    <div class="feishu-section" id="feishu-section" style="display:none">
-      <h3>📤 发送审核报告到飞书</h3>
-      <p class="muted" style="margin-bottom:12px">选择群聊后,把审核结果发到飞书群</p>
-      <select id="chat-select" class="chat-select"><option value="">加载群聊中...</option></select>
-      <button id="send-feishu" class="btn-feishu-inline" disabled>发送到飞书</button>
-      <div id="feishu-result" class="result-msg"></div>
-    </div>
-  </div>
 </div>
 <script>
 function escapeHtml(s){if(s==null)return '';return String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]))}
@@ -755,21 +726,21 @@ zone.addEventListener('drop',e=>{
 file.addEventListener('change',showFile);
 function showFile(){
   if(file.files.length){
-    zone.innerHTML='<div class="drop-icon">✅</div><div class="drop-text">'+escapeHtml(file.files[0].name)+'</div><div class="drop-hint">点击重新选择</div>';
+    zone.innerHTML='<div class="drop-icon">✓</div><div class="drop-text">'+escapeHtml(file.files[0].name)+'</div><div class="drop-hint">点击重新选择</div>';
     zone.classList.add('has-file');
     btn.disabled=false;
   }
 }
 btn.addEventListener('click',async()=>{
   if(!file.files.length)return;
-  result.innerHTML='<div class="progress-box"><span class="loading"></span><div class="progress-msg" id="progress-msg">⏳ 第 1 步:合同分类中(约 10-30 秒)...</div><div class="progress-sub">整体流程约 1-3 分钟,请耐心等待</div></div>';
+  result.innerHTML='<div class="progress-box"><span class="loading"></span><div class="progress-msg" id="progress-msg">第 1 步:合同分类中(约 10-30 秒)...</div><div class="progress-sub">整体流程约 1-3 分钟,请耐心等待</div></div>';
   const fd=new FormData();
   fd.append('file',file.files[0]);
   const controller=new AbortController();
   const timeoutId=setTimeout(()=>controller.abort(),300000);
   const progressTimer=setTimeout(()=>{
     const pm=document.getElementById('progress-msg');
-    if(pm)pm.innerHTML='⏳ 第 2 步:RAG 检索模板 + 逐条审核中(约 30-90 秒)...';
+    if(pm)pm.innerHTML='第 2 步:RAG 检索模板 + 逐条审核中(约 30-90 秒)...';
   },30000);
   try{
     const r=await fetch('/api/review/file',{method:'POST',body:fd,signal:controller.signal});
@@ -779,20 +750,20 @@ btn.addEventListener('click',async()=>{
     if(j.items&&!j.error){
       const riskClass=j.overall_risk==='高'?'risk-high':j.overall_risk==='中'?'risk-medium':'risk-low';
       let html='<div class="result-summary">';
-      html+='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">';
-      html+='<div><b>合同类型:</b> '+escapeHtml(j.contract_type)+' <span style="color:var(--c-text-muted);font-size:12px">('+(Number(j.type_confidence||0)*100).toFixed(0)+'% 置信度)</span></div>';
+      html+='<div class="result-summary-top">';
+      html+='<div><b>合同类型:</b> '+escapeHtml(j.contract_type)+' <span class="conf">('+(Number(j.type_confidence||0)*100).toFixed(0)+'% 置信度)</span></div>';
       html+='<span class="risk-badge '+riskClass+'">风险等级: '+escapeHtml(j.overall_risk)+'</span>';
       html+='</div>';
       html+='<div class="stat-pills">';
-      html+='<span class="stat-pill pill-pass">✅ '+j.stats.pass+' 通过</span>';
-      html+='<span class="stat-pill pill-warn">⚠️ '+j.stats.warn+' 警告</span>';
-      html+='<span class="stat-pill pill-fail">❌ '+j.stats.fail+' 风险</span>';
+      html+='<span class="stat-pill pill-pass">'+j.stats.pass+' 通过</span>';
+      html+='<span class="stat-pill pill-warn">'+j.stats.warn+' 警告</span>';
+      html+='<span class="stat-pill pill-fail">'+j.stats.fail+' 风险</span>';
       html+='<span class="stat-pill pill-total">共 '+j.stats.total+' 项</span>';
       html+='</div></div>';
       if(j.items&&j.items.length){
         html+='<table class="result-table"><thead><tr><th style="width:40px">状态</th><th>检查项</th><th>问题 / 建议</th></tr></thead><tbody>';
         j.items.forEach(it=>{
-          const icon=it.status==='pass'?'✅':it.status==='warn'?'⚠️':'❌';
+          const icon=it.status==='pass'?'✓':it.status==='warn'?'!':'✕';
           const color=it.status==='pass'?'var(--c-green)':it.status==='warn'?'var(--c-amber)':'var(--c-red)';
           html+='<tr><td class="status-icon" style="color:'+color+'">'+icon+'</td><td>'+escapeHtml(it.item||'')+'</td><td>';
           if(it.issue)html+=escapeHtml(it.issue);
@@ -806,9 +777,9 @@ btn.addEventListener('click',async()=>{
       const fs=document.getElementById('feishu-section');
       if(fs)fs.style.display='block';
     }else{
-      result.innerHTML='<div class="error-box">❌ '+escapeHtml(j.error||JSON.stringify(j))+'</div>';
+      result.innerHTML='<div class="error-box">✗ '+escapeHtml(j.error||JSON.stringify(j))+'</div>';
     }
-  }catch(e){clearTimeout(timeoutId);clearTimeout(progressTimer);const msg=e.name==='AbortError'?'审核超时(超过 5 分钟),请重试或缩短合同文本':e.message;result.innerHTML='<div class="error-box">❌ 错误: '+escapeHtml(msg)+'</div>'}
+  }catch(e){clearTimeout(timeoutId);clearTimeout(progressTimer);const msg=e.name==='AbortError'?'审核超时(超过 5 分钟),请重试或缩短合同文本':e.message;result.innerHTML='<div class="error-box">✗ '+escapeHtml(msg)+'</div>'}
 });
 
 let lastReview=null;
@@ -838,15 +809,16 @@ document.getElementById('send-feishu').addEventListener('click',async()=>{
   try{
     const r=await fetch('/api/review/feishu',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:chatId,review:lastReview})});
     const d=await r.json();
-    if(d.ok){msg.className='result-msg success';msg.textContent='✅ 审核报告已发送到飞书群';}
-    else{msg.className='result-msg error';msg.textContent='❌ '+(d.error||'发送失败');}
-  }catch(e){msg.className='result-msg error';msg.textContent='❌ '+e.message;}
+    if(d.ok){msg.className='result-msg success';msg.textContent='✓ 审核报告已发送到飞书群';}
+    else{msg.className='result-msg error';msg.textContent='✗ '+(d.error||'发送失败');}
+  }catch(e){msg.className='result-msg error';msg.textContent='✗ '+e.message;}
   btn.disabled=false;btn.textContent='发送到飞书';
 });
 loadChats();
 </script>
 </body>
 </html>"""
+
 
 
 # === 路由 ===
