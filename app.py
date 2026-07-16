@@ -8,7 +8,13 @@ import math
 from dotenv import load_dotenv
 from cherry_client import chat, chat_json, embed, test_connection
 from checklists import CHECKLISTS, REVIEW_PROMPT
-from feishu_client import list_chats as feishu_list_chats, send_post as feishu_send_post, send_text as feishu_send_text
+from feishu_client import (
+    list_chats as feishu_list_chats,
+    send_post as feishu_send_post,
+    send_text as feishu_send_text,
+    download_message_file as feishu_download_file,
+    get_user_info as feishu_get_user_info,
+)
 from monitor import init_monitor
 
 load_dotenv()
@@ -1479,14 +1485,163 @@ def _handle_feishu_message(text, chat_id):
             pass
 
 
+def _handle_feishu_file_message(msg_id, msg_type, content, chat_id, sender_open_id):
+    """处理飞书 file/image 消息:下载 → 提取文本 → 分类+审核 → 回复
+
+    msg_type: "file" 或 "image"
+    content: 飞书消息 content(已解析的 dict)
+    """
+    import io as _io
+
+    try:
+        # Step 0: 提取 file_key / image_key
+        if msg_type == "image":
+            file_key = content.get("image_key", "")
+            file_type = "image"
+            filename = f"feishu_image_{file_key[:16]}.png"
+        elif msg_type == "file":
+            file_key = content.get("file_key", "")
+            file_type = "file"
+            filename = content.get("file_name", f"feishu_file_{file_key[:16]}")
+        else:
+            return
+
+        if not file_key:
+            feishu_send_text(chat_id, "❌ 无法获取文件 key")
+            return
+
+        # Step 1: 下载文件
+        feishu_send_text(chat_id, "📥 正在下载文件...")
+        dl = feishu_download_file(msg_id, file_key, file_type=file_type)
+        if not dl.get("ok"):
+            feishu_send_text(chat_id, f"❌ 文件下载失败: {dl.get('error', '未知错误')}")
+            return
+        file_bytes = dl["data"]
+
+        # Step 2: 提取文本
+        feishu_send_text(chat_id, f"📄 文件已下载({len(file_bytes)} 字节),文本提取中...")
+        extracted = extract_text_from_upload(_io.BytesIO(file_bytes), filename)
+        if isinstance(extracted, dict) and not extracted.get("ok", True):
+            feishu_send_text(chat_id, f"❌ 文本提取失败: {extracted.get('error', '未知')}")
+            return
+        contract_text = extracted
+        if len(contract_text.strip()) < 20:
+            feishu_send_text(chat_id, "❌ 提取到的文本过短,无法审核(文件可能无文字或 OCR 失败)")
+            return
+
+        # Step 3: 审核
+        feishu_send_text(chat_id, f"🤖 AI 审核中(约 1-3 分钟,合同长度 {len(contract_text)} 字)...")
+        result = _do_review(contract_text)
+        if not result.get("ok"):
+            feishu_send_text(chat_id, f"❌ 审核失败: {result.get('error', '未知错误')}")
+            return
+
+        # Step 4: 持久化到 contracts 表
+        contract_type = result.get("contract_type", "未知")
+        overall_risk = result.get("overall_risk", "未知")
+        stats = result.get("stats", {})
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            try:
+                c = conn.cursor()
+                c.execute("""CREATE TABLE IF NOT EXISTS contracts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    filename TEXT,
+                    contract_type TEXT,
+                    overall_risk TEXT,
+                    total_items INTEGER,
+                    pass_count INTEGER,
+                    warn_count INTEGER,
+                    fail_count INTEGER,
+                    contract_text TEXT,
+                    review_result TEXT,
+                    feishu_open_id TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )""")
+                c.execute(
+                    "INSERT INTO contracts (filename, contract_type, overall_risk, total_items, pass_count, warn_count, fail_count, contract_text, review_result, feishu_open_id) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    (
+                        filename,
+                        contract_type,
+                        overall_risk,
+                        stats.get("total", 0),
+                        stats.get("pass", 0),
+                        stats.get("warn", 0),
+                        stats.get("fail", 0),
+                        contract_text[:5000],
+                        json.dumps(result.get("items", []), ensure_ascii=False)[:5000],
+                        sender_open_id,
+                    ),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+        except Exception as e:
+            print(f"[warn] contracts 入库失败: {e}")
+
+        # Step 5: Bot 回复富文本
+        risk_emoji = {"高": "🔴", "中": "🟡", "低": "🟢"}.get(overall_risk, "⚪")
+        paragraphs = [
+            [{"tag": "text", "text": f"📋 合同审核完成\n"}],
+            [{"tag": "text", "text": f"文件: {filename[:50]}\n"}],
+            [{"tag": "text", "text": f"合同类型: {contract_type}\n"}],
+            [{"tag": "text", "text": f"风险等级: {risk_emoji} {overall_risk}\n"}],
+            [{"tag": "text", "text": f"统计: ✅ 通过 {stats.get('pass',0)}  ⚠️ 警告 {stats.get('warn',0)}  ❌ 不合规 {stats.get('fail',0)} (共 {stats.get('total',0)} 项)\n"}],
+            [{"tag": "text", "text": "─" * 20}],
+        ]
+        # 列出前 8 条审核结果
+        for item in result.get("items", [])[:8]:
+            status = item.get("status", "")
+            emoji = {"pass": "✅", "warn": "⚠️", "fail": "❌"}.get(status, "•")
+            item_name = item.get("item", "")[:25]
+            issue = item.get("issue") or item.get("suggestion") or ""
+            if issue:
+                issue = issue[:50]
+            paragraphs.append([{"tag": "text", "text": f"{emoji} {item_name}: {issue}\n"}])
+
+        if len(result.get("items", [])) > 8:
+            paragraphs.append([{"tag": "text", "text": f"...还有 {len(result['items'])-8} 项,查看网页版详情"}])
+
+        paragraphs.append([{"tag": "text", "text": "\n发送\"帮助\"查看更多指令"}])
+        feishu_send_post(chat_id, "📋 合同审核报告", paragraphs)
+
+    except Exception as e:
+        try:
+            feishu_send_text(chat_id, f"❌ 处理文件时出错: {e}")
+        except Exception:
+            pass
+
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     """飞书事件订阅回调
 
     支持飞书 v2 事件格式(header.event_type)和 v1 格式。
+    支持 Encrypt Key 加密模式。
     收到消息后立即返回 200,异步处理指令。
     """
     data = request.get_json(silent=True) or {}
+
+    # 加密模式:飞书发 {"encrypt": "base64..."},需解密
+    if "encrypt" in data and not data.get("challenge"):
+        try:
+            import base64, hashlib
+            from Crypto.Cipher import AES
+            encrypt_key = os.environ.get("LARK_ENCRYPT_KEY", "")
+            if not encrypt_key:
+                return jsonify({"error": "encrypt key not configured"}), 500
+            key = hashlib.sha256(encrypt_key.encode("utf-8")).digest()
+            enc = base64.b64decode(data["encrypt"])
+            cipher = AES.new(key, AES.MODE_CBC, iv=enc[:16])
+            decrypted = cipher.decrypt(enc[16:])
+            # PKCS7 去填充
+            pad = decrypted[-1]
+            decrypted = decrypted[:-pad].decode("utf-8")
+            data = json.loads(decrypted)
+        except Exception as e:
+            return jsonify({"error": f"decrypt failed: {e}"}), 500
+
+    # challenge 校验(必须在 1 秒内返回)
     if "challenge" in data:
         return jsonify({"challenge": data["challenge"]})
 
@@ -1512,12 +1667,22 @@ def webhook():
     except (json.JSONDecodeError, TypeError):
         content = {}
     text = content.get("text", "")
+    msg_type = msg.get("message_type", "")
+    sender = event.get("sender", {}).get("sender_id", {}).get("open_id", "")
 
     # 异步处理
-    if chat_id and text:
+    if chat_id:
         import threading
-        t = threading.Thread(target=_handle_feishu_message, args=(text, chat_id), daemon=True)
-        t.start()
+        if msg_type in ("image", "file"):
+            t = threading.Thread(
+                target=_handle_feishu_file_message,
+                args=(msg_id, msg_type, content, chat_id, sender),
+                daemon=True,
+            )
+            t.start()
+        elif text:
+            t = threading.Thread(target=_handle_feishu_message, args=(text, chat_id), daemon=True)
+            t.start()
 
     return jsonify({"ok": True})
 
