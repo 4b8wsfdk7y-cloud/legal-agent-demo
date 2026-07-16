@@ -308,42 +308,50 @@ MONITOR_HTML = """<!DOCTYPE html>
 <title>监控仪表盘 · {{ service }}</title>
 <style>
 :root{
-  --c-bg:#0a0f0d;--c-surface:#11171420;--c-surface-2:#1a221d;
-  --c-text:#d4d4d8;--c-text-dim:#8a8a8f;--c-text-muted:#5c5c63;
-  --c-border:#ffffff14;--c-border-strong:#ffffff26;
-  --c-accent:#10b981;--c-accent-dim:#10b98130;
-  --c-green:#10b981;--c-amber:#f59e0b;--c-red:#ef4444;
+  --background: oklch(0.145 0.003 160);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.178 0.003 160);
+  --muted: oklch(0.22 0.003 160);
+  --muted-foreground: oklch(0.708 0.004 160);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.65 0.15 160);
+  --primary: oklch(0.65 0.15 160);
+  --primary-foreground: oklch(0.15 0.02 160);
+  --success: oklch(0.65 0.15 160);
+  --warning: oklch(0.75 0.15 75);
+  --danger: oklch(0.65 0.2 25);
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;background:var(--c-bg);color:var(--c-text);line-height:1.6;font-size:14px;padding:24px;min-height:100vh;-webkit-font-smoothing:antialiased}
+body{font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC","Microsoft YaHei",sans-serif;background:var(--background);color:var(--foreground);line-height:1.6;font-size:14px;padding:24px;min-height:100vh;-webkit-font-smoothing:antialiased;font-feature-settings:"tnum"}
 .container{max-width:1040px;margin:0 auto}
 .page-head{margin-bottom:20px}
-h1{font-size:20px;font-weight:700;color:#f4f4f5;letter-spacing:-.02em;margin-bottom:2px}
-.subtitle{color:var(--c-text-muted);font-size:12.5px}
+h1{font-size:20px;font-weight:600;color:var(--foreground);letter-spacing:-.02em;margin-bottom:2px}
+.subtitle{color:var(--muted-foreground);font-size:12px}
 .actions{margin-bottom:20px;display:flex;gap:8px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--c-border);border:1px solid var(--c-border);border-radius:6px;overflow:hidden;margin-bottom:20px}
-.card{background:var(--c-bg);padding:16px 18px}
-.card .label{font-size:11px;color:var(--c-text-muted);letter-spacing:.04em;text-transform:uppercase;font-weight:500}
-.card .value{font-size:22px;font-weight:700;margin-top:4px;color:#f4f4f5;letter-spacing:-.02em;font-feature-settings:"tnum"}
-.card .sub{font-size:11px;color:var(--c-text-muted);margin-top:3px}
-.card.alert .value{color:var(--c-red)}
-.card.warn .value{color:var(--c-amber)}
-.card.ok .value{color:var(--c-green)}
-.section{background:transparent;border:1px solid var(--c-border);border-radius:6px;padding:18px;margin-bottom:16px}
-.section h2{font-size:13px;font-weight:600;color:var(--c-text);margin-bottom:12px;letter-spacing:-.01em}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px}
+.mcard{background:var(--card);padding:16px 18px}
+.mcard .label{font-size:11px;color:var(--muted-foreground);letter-spacing:.04em;text-transform:uppercase;font-weight:500}
+.mcard .value{font-size:22px;font-weight:600;margin-top:4px;color:var(--foreground);letter-spacing:-.02em;font-feature-settings:"tnum"}
+.mcard .sub{font-size:11px;color:var(--muted-foreground);margin-top:3px}
+.mcard.alert .value{color:var(--danger)}
+.mcard.warn .value{color:var(--warning)}
+.mcard.ok .value{color:var(--success)}
+.section{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:18px;margin-bottom:14px}
+.section h2{font-size:12.5px;font-weight:600;color:var(--foreground);margin-bottom:12px;letter-spacing:-.01em}
 table{width:100%;border-collapse:collapse;font-size:12.5px}
-th{text-align:left;padding:8px 10px;color:var(--c-text-muted);font-weight:500;border-bottom:1px solid var(--c-border);font-size:11px;letter-spacing:.04em;text-transform:uppercase}
-td{padding:9px 10px;border-bottom:1px solid var(--c-border);color:var(--c-text)}
+th{text-align:left;padding:8px 10px;color:var(--muted-foreground);font-weight:500;border-bottom:1px solid var(--border);font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--foreground)}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:var(--c-surface)}
-.badge{display:inline-block;padding:2px 8px;border-radius:3px;font-size:10.5px;font-weight:600;border:1px solid;letter-spacing:.02em}
-.badge-red{background:#ef44441a;color:var(--c-red);border-color:#ef444433}
-.badge-yellow{background:#f59e0b1a;color:var(--c-amber);border-color:#f59e0b33}
-.badge-green{background:var(--c-accent-dim);color:var(--c-green);border-color:var(--c-accent-dim)}
-.refresh-btn{background:transparent;color:var(--c-text-dim);border:1px solid var(--c-border-strong);padding:6px 14px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:500;font-family:inherit;transition:all .15s}
-.refresh-btn:hover{color:var(--c-text);border-color:#ffffff40}
+tr:hover td{background:var(--muted)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10.5px;font-weight:600;border:1px solid;letter-spacing:.02em}
+.badge-red{background:oklch(0.65 0.2 25 / 12%);color:var(--danger);border-color:oklch(0.65 0.2 25 / 30%)}
+.badge-yellow{background:oklch(0.75 0.15 75 / 12%);color:var(--warning);border-color:oklch(0.75 0.15 75 / 30%)}
+.badge-green{background:oklch(0.65 0.15 160 / 12%);color:var(--success);border-color:oklch(0.65 0.15 160 / 30%)}
+.refresh-btn{background:var(--card);color:var(--muted-foreground);border:1px solid var(--border);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;font-family:inherit;transition:all .15s}
+.refresh-btn:hover{color:var(--foreground);border-color:var(--input);background:var(--muted)}
 .error-list{max-height:400px;overflow-y:auto}
-.empty{color:var(--c-text-muted);text-align:center;padding:16px;font-size:12.5px}
+.empty{color:var(--muted-foreground);text-align:center;padding:16px;font-size:12px}
 </style>
 </head>
 <body>
@@ -353,13 +361,13 @@ tr:hover td{background:var(--c-surface)}
     <button class="refresh-btn" onclick="location.reload()">🔄 刷新</button>
 
     <div class="grid">
-        <div class="card ok"><div class="label">总请求数</div><div class="value">{{ stats.total_requests }}</div><div class="sub">{{ stats.uptime_human }}</div></div>
-        <div class="card {{ 'alert' if stats.error_count > 10 else ('warn' if stats.error_count > 0 else 'ok') }}"><div class="label">错误数</div><div class="value">{{ stats.error_count }}</div><div class="sub">错误率 {{ stats.error_rate }}%</div></div>
-        <div class="card {{ 'alert' if stats.server_error_count > 0 else 'ok' }}"><div class="label">5xx 服务器错误</div><div class="value">{{ stats.server_error_count }}</div><div class="sub">需关注</div></div>
-        <div class="card {{ 'alert' if stats.alerts_sent > 0 else 'ok' }}"><div class="label">飞书告警</div><div class="value">{{ stats.alerts_sent }}</div><div class="sub">已发送</div></div>
+        <div class="mcard ok"><div class="label">总请求数</div><div class="value">{{ stats.total_requests }}</div><div class="sub">{{ stats.uptime_human }}</div></div>
+        <div class="mcard {{ 'alert' if stats.error_count > 10 else ('warn' if stats.error_count > 0 else 'ok') }}"><div class="label">错误数</div><div class="value">{{ stats.error_count }}</div><div class="sub">错误率 {{ stats.error_rate }}%</div></div>
+        <div class="mcard {{ 'alert' if stats.server_error_count > 0 else 'ok' }}"><div class="label">5xx 服务器错误</div><div class="value">{{ stats.server_error_count }}</div><div class="sub">需关注</div></div>
+        <div class="mcard {{ 'alert' if stats.alerts_sent > 0 else 'ok' }}"><div class="label">飞书告警</div><div class="value">{{ stats.alerts_sent }}</div><div class="sub">已发送</div></div>
     </div>
 
-    <div class="card" style="margin-bottom:24px">
+    <div class="mcard" style="margin-bottom:24px">
         <div class="label" style="margin-bottom:8px">健康检查</div>
         <div style="font-size:16px">
             {% if health.db.ok %}<span class="badge badge-green">DB OK</span>{% else %}<span class="badge badge-red">DB FAIL</span>{% endif %}
@@ -426,7 +434,7 @@ tr:hover td{background:var(--c-surface)}
         {% else %}<div class="empty">无告警记录</div>{% endif %}
         <div style="margin-top:12px">
             <form method="POST" action="/api/alert/test" style="display:inline">
-                <button type="submit" class="refresh-btn" style="color:var(--c-amber);border-color:#f59e0b33">发送测试告警</button>
+                <button type="submit" class="refresh-btn" style="color:var(--warning);border-color:oklch(0.75 0.15 75 / 30%)">发送测试告警</button>
             </form>
         </div>
     </div>
