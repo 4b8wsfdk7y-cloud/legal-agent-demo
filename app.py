@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
 """法务 Agent — 合同审核 Demo (D4)"""
 from flask import Flask, request, jsonify, render_template_string
+from werkzeug.exceptions import RequestEntityTooLarge
 import os
 import json
 import sqlite3
 import math
+import io
+import subprocess
+import tempfile
 from dotenv import load_dotenv
 from cherry_client import chat, chat_json, embed, test_connection
 from checklists import CHECKLISTS, REVIEW_PROMPT
@@ -20,7 +24,7 @@ from monitor import init_monitor
 load_dotenv()
 
 app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB 上传上限
+app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # 32MB 上传上限
 
 # === 配置 ===
 CHERRYIN_API_KEY = os.environ.get("CHERRYIN_API_KEY", "")
@@ -679,15 +683,15 @@ body{
 <div class="wrap">
     <div class="page-head">
         <h1>合同审核</h1>
-        <p>上传合同 PDF / TXT → AI 分类 → 79 项风险 Checklist 审核 → 结构化结论</p>
+        <p>上传合同 PDF / Word / TXT → AI 分类 → 79 项风险 Checklist 审核 → 结构化结论</p>
     </div>
     <div class="card">
         <div class="drop-zone" id="drop">
             <div class="drop-icon">⬆</div>
             <div class="drop-text">点击或拖拽文件到此处</div>
-            <div class="drop-hint">支持 PDF 和 TXT 格式</div>
+            <div class="drop-hint">支持 PDF、Word（DOC/DOCX）和 TXT 格式</div>
         </div>
-        <input type="file" id="file" accept=".pdf,.txt" style="display:none">
+        <input type="file" id="file" accept=".pdf,.doc,.docx,.txt" style="display:none">
         <div class="info-box">
             <b>支持 4 类合同:</b> 采购 / 销售-toB(SaaS) / 销售-toC / 人事<br>
             <b>审核流程:</b> 分类 → 选 Checklist → RAG 检索模板 → 逐条审核 → 风险等级
@@ -723,7 +727,8 @@ btn.addEventListener('click',async()=>{
   try{
     const r=await fetch('/api/review/file',{method:'POST',body:fd,signal:controller.signal});
     clearTimeout(timeoutId);clearTimeout(progressTimer);
-    const j=await r.json();
+    const j=await r.json().catch(()=>({ok:false,error:'服务返回了无法识别的响应，请稍后重试。'}));
+    if(!r.ok&&!j.error)j.error='上传或解析失败（HTTP '+r.status+'），请检查文件格式和大小。';
     if(j.items&&!j.error){
       const riskClass=j.overall_risk==='高'?'risk-high':j.overall_risk==='中'?'risk-medium':'risk-low';
       let html='<div class="result-summary"><div class="result-summary-top"><div><b>合同类型:</b> '+escapeHtml(j.contract_type)+' <span class="conf">('+(Number(j.type_confidence||0)*100).toFixed(0)+'% 置信度)</span></div><span class="risk-badge '+riskClass+'">风险等级: '+escapeHtml(j.overall_risk)+'</span></div>';
@@ -776,6 +781,16 @@ def health():
         "embed_model": EMBED_MODEL,
     })
 
+@app.errorhandler(RequestEntityTooLarge)
+def handle_file_too_large(error):
+    """以 JSON 返回文件过大的错误，供上传页直接显示。"""
+    max_mb = app.config["MAX_CONTENT_LENGTH"] // (1024 * 1024)
+    return jsonify({
+        "ok": False,
+        "error": f"文件超过 {max_mb}MB 上传上限，请压缩或拆分后重试。",
+    }), 413
+
+
 # === API ===
 @app.route("/api/test-llm")
 def test_llm():
@@ -810,7 +825,7 @@ def classify_file():
     filename = f.filename
     text = extract_text_from_upload(f, filename)
     if isinstance(text, dict):  # 错误返回
-        return jsonify(text)
+        return jsonify(text), 422
     snippet = text[:1500]
     prompt = CLASSIFY_PROMPT.format(text=snippet)
     result = chat_json([
@@ -824,10 +839,15 @@ def classify_file():
     return jsonify({"ok": True, "filename": filename, "text_length": len(text), "result": result})
 
 # === RAG 知识库 ===
-# OCR 配置
-_OCR_MAX_PAGES = 50  # 单次 OCR 最多页数,防止超大 PDF 拖垮服务
-_OCR_DPI = 200       # OCR 渲染 DPI(平衡速度与准确率)
-_OCR_MIN_CHARS = 20  # pypdf 提取文本少于此字符数判定为扫描件,触发 OCR
+# 上传与 OCR 资源边界。所有上限均显式报错，绝不静默截断合同。
+_OCR_MAX_PAGES = 50
+_OCR_DPI = 200
+_OCR_MIN_CHARS = 20
+_MAX_EXTRACTED_CHARS = 80_000
+_MAX_DOCX_UNCOMPRESSED_BYTES = 64 * 1024 * 1024
+_MAX_DOCX_MEMBERS = 1_000
+_SUPPORTED_UPLOAD_EXTENSIONS = {".pdf", ".txt", ".doc", ".docx"}
+_LEGACY_DOC_MAGIC = bytes.fromhex("D0CF11E0A1B11AE1")
 
 
 def _ocr_pdf(pdf_bytes):
@@ -865,87 +885,164 @@ def _ocr_pdf(pdf_bytes):
     return text, None
 
 
+def _extract_legacy_doc(raw_bytes):
+    """用 antiword 从旧版 .doc 二进制文档提取文本。"""
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".doc", delete=False) as temp_file:
+            temp_file.write(raw_bytes)
+            temp_path = temp_file.name
+
+        completed = subprocess.run(
+            ["antiword", temp_path],
+            capture_output=True,
+            timeout=60,
+            check=False,
+        )
+    except FileNotFoundError:
+        return None, "服务器未安装 .doc 解析组件。请联系管理员重新部署服务。"
+    except subprocess.TimeoutExpired:
+        return None, ".doc 解析超时，请尝试导出为 .docx 或 PDF 后重试。"
+    except OSError as error:
+        return None, f".doc 临时文件处理失败: {error}"
+    finally:
+        if temp_path:
+            try:
+                os.unlink(temp_path)
+            except FileNotFoundError:
+                pass
+
+    if completed.returncode != 0:
+        detail = completed.stderr.decode("utf-8", errors="replace").strip()
+        return None, f".doc 解析失败{': ' + detail if detail else ''}"
+
+    return _validate_extracted_text(
+        completed.stdout.decode("utf-8", errors="replace"),
+        ".doc",
+    )
+
+
+def _upload_error(message):
+    return {"ok": False, "error": message, "stage": "extract"}
+
+
+def _validate_extracted_text(text, file_type):
+    text = text.strip()
+    if not text:
+        return None, f"{file_type} 未提取到可审核的文本。"
+    if len(text) > _MAX_EXTRACTED_CHARS:
+        return None, (
+            f"{file_type} 提取文本超过 {_MAX_EXTRACTED_CHARS:,} 字上限，"
+            "请拆分合同后分别审核，避免遗漏条款。"
+        )
+    return text, None
+
+
+def _decode_txt(raw_bytes):
+    for encoding in ("utf-8-sig", "utf-16", "gb18030"):
+        try:
+            text = raw_bytes.decode(encoding)
+            if text.strip():
+                return _validate_extracted_text(text, "TXT")
+        except UnicodeDecodeError:
+            continue
+    return None, "TXT 编码无法识别；请另存为 UTF-8、UTF-16 或 GB18030 后重试。"
+
+
+def _validate_upload(raw_bytes, filename):
+    if not filename or not filename.strip():
+        return None, "文件名为空。"
+    extension = os.path.splitext(filename.lower())[1]
+    if extension not in _SUPPORTED_UPLOAD_EXTENSIONS:
+        return None, "不支持的文件格式。请上传 PDF、TXT、DOC 或 DOCX 文件。"
+    if not raw_bytes:
+        return None, "文件为空。"
+    if extension == ".pdf" and not raw_bytes.startswith(b"%PDF-"):
+        return None, "文件扩展名为 PDF，但内容不是有效 PDF。"
+    if extension == ".doc" and not raw_bytes.startswith(_LEGACY_DOC_MAGIC):
+        return None, "文件扩展名为 DOC，但内容不是有效旧版 Word 文档。"
+    if extension == ".docx" and not raw_bytes.startswith(b"PK"):
+        return None, "文件扩展名为 DOCX，但内容不是有效 Word 文档。"
+    return extension, None
+
+
+def _check_docx_archive(raw_bytes):
+    try:
+        import zipfile
+        with zipfile.ZipFile(io.BytesIO(raw_bytes)) as archive:
+            members = archive.infolist()
+            if len(members) > _MAX_DOCX_MEMBERS:
+                return "DOCX 内部文件数量异常，已拒绝解析。"
+            uncompressed_size = sum(member.file_size for member in members)
+            if uncompressed_size > _MAX_DOCX_UNCOMPRESSED_BYTES:
+                return "DOCX 解压后体积超过 64MB，已拒绝解析。"
+            if "word/document.xml" not in archive.namelist():
+                return "DOCX 缺少正文内容。"
+    except Exception as error:
+        return f"DOCX 文件结构无效: {error}"
+    return None
+
+
 def extract_text_from_upload(f, filename):
-    """从上传文件提取文本。成功返回 str,失败返回 dict(错误响应)。
-
-    策略:
-      1. TXT: 直接 UTF-8 解码
-      2. PDF: 先 pypdf 提取文本;若文本过短(扫描件),自动降级 OCR
-      3. 其他: 尝试 UTF-8 解码
-    """
+    """提取受控格式的合同文本；成功返回 str，失败返回 API 错误 dict。"""
     raw_bytes = f.read()
+    extension, validation_error = _validate_upload(raw_bytes, filename)
+    if validation_error:
+        return _upload_error(validation_error)
 
-    if filename.lower().endswith(".txt"):
-        text = raw_bytes.decode("utf-8", errors="ignore")
-        if not text.strip():
-            return {"ok": False, "error": "文件为空"}
-        return text
+    if extension == ".txt":
+        text, error = _decode_txt(raw_bytes)
+        return text if error is None else _upload_error(error)
 
-    if filename.lower().endswith(".pdf"):
-        # 第一步:pypdf 提取文本
-        text = ""
+    if extension == ".pdf":
         try:
             from pypdf import PdfReader
-            import io
             reader = PdfReader(io.BytesIO(raw_bytes))
+            if reader.is_encrypted and reader.decrypt("") == 0:
+                return _upload_error("PDF 已加密，无法读取；请先解除密码保护后重试。")
+            page_count = len(reader.pages)
+            if page_count == 0:
+                return _upload_error("PDF 没有可读取页面。")
+            if page_count > _OCR_MAX_PAGES:
+                return _upload_error(
+                    f"PDF 共 {page_count} 页，超过 {_OCR_MAX_PAGES} 页上限；请拆分后分别审核。"
+                )
             text = "\n".join(page.extract_text() or "" for page in reader.pages)
         except ImportError:
-            return {"ok": False, "error": "pypdf not installed"}
-        except Exception as e:
-            return {"ok": False, "error": f"PDF 解析失败: {e}"}
+            return _upload_error("服务端缺少 PDF 解析组件。")
+        except Exception as error:
+            return _upload_error(f"PDF 解析失败: {error}")
 
-        # 第二步:文本过短 → 判定为扫描件,触发 OCR
         if len(text.strip()) < _OCR_MIN_CHARS:
-            ocr_text, ocr_err = _ocr_pdf(raw_bytes)
-            if ocr_err:
-                return {"ok": False, "error": f"扫描件需 OCR,但 OCR 失败: {ocr_err}"}
-            if not ocr_text.strip():
-                return {"ok": False, "error": "OCR 未提取到文本(图片可能模糊或为纯图形)"}
-            return ocr_text
+            ocr_text, ocr_error = _ocr_pdf(raw_bytes)
+            if ocr_error:
+                return _upload_error(f"扫描件需 OCR，但 OCR 失败: {ocr_error}")
+            text = ocr_text
 
-        return text
+        text, error = _validate_extracted_text(text, "PDF")
+        return text if error is None else _upload_error(error)
 
-    if filename.lower().endswith(".docx"):
-        # .docx 本质是 ZIP,直接 UTF-8 解码会得到乱码
-        # 优先用 python-docx 提取;降级用 zipfile 直接读 word/document.xml
-        try:
-            from docx import Document
-            import io
-            doc = Document(io.BytesIO(raw_bytes))
-            paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
-            # 也提取表格里的文字(合同经常用表格)
-            for table in doc.tables:
-                for row in table.rows:
-                    for cell in row.cells:
-                        if cell.text.strip():
-                            paragraphs.append(cell.text.strip())
-            text = chr(10).join(paragraphs)
-            if not text.strip():
-                return {"ok": False, "error": ".docx 文件为空或无文本内容"}
-            return text
-        except ImportError:
-            # python-docx 未安装,降级用 zipfile 直接解析
-            try:
-                import zipfile, re
-                with zipfile.ZipFile(io.BytesIO(raw_bytes)) as z:
-                    xml = z.read("word/document.xml").decode("utf-8", errors="ignore")
-                    # 去掉 XML 标签,保留纯文本
-                    text = re.sub(r"<w:p[ >]", chr(10), xml)
-                    text = re.sub(r"<[^>]+>", "", text)
-                    text = re.sub(r"\n{3,}", chr(10)+chr(10), text).strip()
-                    if not text:
-                        return {"ok": False, "error": ".docx 解析失败:文档无文本内容"}
-                    return text
-            except Exception as e:
-                return {"ok": False, "error": f".docx 解析失败(需安装 python-docx 或检查文件): {e}"}
-        except Exception as e:
-            return {"ok": False, "error": f".docx 解析失败: {e}"}
+    if extension == ".doc":
+        text, error = _extract_legacy_doc(raw_bytes)
+        return text if error is None else _upload_error(error)
 
-    # 其他格式:尝试 UTF-8
-    text = raw_bytes.decode("utf-8", errors="ignore")
-    if not text.strip():
-        return {"ok": False, "error": "无法提取文本(不支持的文件格式或文件为空)"}
-    return text
+    archive_error = _check_docx_archive(raw_bytes)
+    if archive_error:
+        return _upload_error(archive_error)
+
+    try:
+        from docx import Document
+        document = Document(io.BytesIO(raw_bytes))
+        paragraphs = [paragraph.text for paragraph in document.paragraphs if paragraph.text.strip()]
+        for table in document.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    if cell.text.strip():
+                        paragraphs.append(cell.text.strip())
+        text, error = _validate_extracted_text("\n".join(paragraphs), "DOCX")
+        return text if error is None else _upload_error(error)
+    except Exception as error:
+        return _upload_error(f"DOCX 解析失败: {error}")
 
 
 @app.route("/api/documents")
@@ -1074,9 +1171,9 @@ def search():
 
 def _do_review(text):
     """合同审核核心逻辑: 分类 → 选 Checklist → RAG(同类模板) → 逐条审核"""
-    # 诊断日志:记录提取的文本长度和前 500 字
+    # 合同内容属于敏感信息；日志仅记录长度，不记录正文。
     import logging
-    logging.getLogger("app").info(f"[_do_review] 提取文本长度={len(text)}, 前500字={text[:500]!r}")
+    logging.getLogger("app").info("[_do_review] extracted_text_length=%d", len(text))
     # 1. 分类
     snippet = text[:1500]
     classify_prompt = CLASSIFY_PROMPT.format(text=snippet)
@@ -1206,7 +1303,7 @@ def review_file():
     filename = f.filename
     text = extract_text_from_upload(f, filename)
     if isinstance(text, dict):  # 错误返回
-        return jsonify(text)
+        return jsonify(text), 422
     return jsonify(_do_review(text))
 
 

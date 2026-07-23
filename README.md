@@ -5,7 +5,7 @@
 
 ## 📌 项目简介
 
-法务审核助手是 Cherry Studio 企业运营智能化项目的法务模块 Demo,面向企业法务/合同管理场景。上传合同 PDF/TXT 后,AI 自动分类合同类型,用 79 项风险 Checklist 逐条审核,RAG 检索标准模板条款作参考,输出结构化风险报告,最终一键发送到飞书群。
+法务审核助手是 Cherry Studio 企业运营智能化项目的法务模块 Demo,面向企业法务/合同管理场景。上传合同 PDF/DOC/DOCX/TXT 后,AI 自动分类合同类型,用 79 项风险 Checklist 逐条审核,RAG 检索标准模板条款作参考,输出结构化风险报告,最终一键发送到飞书群。
 
 **核心能力:**
 - 📄 合同分类(采购 / 销售-toB / 销售-toC / 人事,99% 准确率)
@@ -22,9 +22,10 @@
 | Embedding | CherryIN 网关 · baai/bge-m3 | RAG 向量检索(必须小写) |
 | 数据存储 | SQLite (legal.db) | documents + chunks 表 |
 | PDF 解析 | pypdf | 合同 PDF 文本提取 |
-| OCR | pdf2image + pytesseract | 扫描 PDF 识别(预留) |
-| 飞书集成 | lark-cli 子进程 | 复用已认证 profile |
-| 部署 | Ubuntu 24.04 + Python venv | 124.222.181.129:5003 |
+| OCR | pdf2image + pytesseract | 扫描 PDF 识别；Docker 安装 Poppler/Tesseract 中文包 |
+| Word 解析 | python-docx + antiword | DOCX 与旧版 DOC 文本提取 |
+| 飞书集成 | 飞书 OpenAPI REST | Bot 消息与文件下载 |
+| 部署 | Railway + Docker | 构建时固定安装系统解析依赖 |
 
 ## 📂 目录结构
 
@@ -98,10 +99,17 @@ python app.py
 | POST | `/api/review/feishu` | 发送审核报告到飞书群 | ✅ |
 | POST | `/webhook` | 飞书事件订阅回调 | ⏳ |
 
+## 上传约束与隐私
+
+- 支持 PDF、TXT、DOC、DOCX；文件超过 32MB 会被拒绝。
+- PDF 最多 50 页；DOCX 会校验内部文件数量和解压后体积；提取文本超过 80,000 字会拒绝审核，不会静默截断。
+- 扫描 PDF 自动 OCR；解析失败会返回具体错误，不会把无法读取的文件交给模型编造审核结论。
+- 合同正文不写入应用日志；.env 与本地 SQLite 数据库不纳入 Git。
+
 ## 🔍 审核流程
 
 ```
-合同上传(PDF/TXT)
+合同上传(PDF/DOC/DOCX/TXT)
     │
     ▼
 AI 分类(采购 / toB / toC / 人事)

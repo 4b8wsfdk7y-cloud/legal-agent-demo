@@ -1,2 +1,15 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Local data and runtime artifacts
+*.db
+*.sqlite
+*.sqlite3
+instance/

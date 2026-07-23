@@ -364,6 +364,51 @@ class TestOCR(LegalAppTestCase):
         self.assertIsInstance(result, dict)
         self.assertFalse(result["ok"])
 
+    @patch("app.subprocess.run")
+    def test_legacy_doc_extract(self, mock_run):
+        """旧版 .doc 应交给 antiword 提取文本，而不是按 UTF-8 误读。"""
+        import io
+        mock_run.return_value = MagicMock(
+            returncode=0,
+            stdout="甲方乙方就软件开发服务、交付验收、付款方式及违约责任达成如下协议。".encode("utf-8"),
+            stderr=b"",
+        )
+
+        result = legal_app.extract_text_from_upload(
+            io.BytesIO(legal_app._LEGACY_DOC_MAGIC + b"legacy-doc"),
+            "contract.doc",
+        )
+
+        self.assertIsInstance(result, str)
+        self.assertIn("软件开发服务", result)
+        self.assertEqual(mock_run.call_args.args[0][0], "antiword")
+
+    def test_doc_extension_content_mismatch(self):
+        """扩展名伪装的旧版 Word 文件必须在解析前被拒绝。"""
+        import io
+        result = legal_app.extract_text_from_upload(io.BytesIO(b"not-a-word-document"), "contract.doc")
+        self.assertIsInstance(result, dict)
+        self.assertFalse(result["ok"])
+        self.assertIn("不是有效旧版 Word", result["error"])
+
+    def test_upload_too_large_returns_json(self):
+        """超出上传上限时，前端应收到可显示的 JSON 错误。"""
+        import io
+        old_limit = self.app.config["MAX_CONTENT_LENGTH"]
+        self.app.config["MAX_CONTENT_LENGTH"] = 10
+        try:
+            response = self.client.post(
+                "/api/review/file",
+                data={"file": (io.BytesIO(b"more-than-ten-bytes"), "contract.txt")},
+                content_type="multipart/form-data",
+            )
+        finally:
+            self.app.config["MAX_CONTENT_LENGTH"] = old_limit
+
+        self.assertEqual(response.status_code, 413)
+        self.assertFalse(response.get_json()["ok"])
+        self.assertIn("上传上限", response.get_json()["error"])
+
     def test_scanned_pdf_ocr(self):
         """扫描 PDF 应自动触发 OCR 提取文本"""
         import io
